@@ -8,7 +8,7 @@ void DBG_Panic(const char* filename, int lineno, const char* msg)
 
 void DBG_Assert(bool exp, const char* filename, int lineno, const char* msg)
 {
-    if (exp)
+    if (!exp)
     {
         DBG_Panic(filename, lineno, msg);
     }

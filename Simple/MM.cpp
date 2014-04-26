@@ -111,7 +111,7 @@ void* MM_AllocateStorage(struct MM_Storage* storage, unsigned int size)
 
 void MM_FreeStorage(struct MM_Storage* storage)
 {
-    DCHECK(storage);
+    DCHECK(storage != 0);
 
     if (storage == 0)
     {
@@ -148,7 +148,7 @@ struct GCMemory
     const char* filename;
     int     lineno;
     int     size;
-    char    sig_start[GC_SIG_LEN];
+	unsigned char sig_start[GC_SIG_LEN];
     // char buffer[size];
     // char sig_end[GC_SIG_LEN];
 };
@@ -158,9 +158,9 @@ struct MM_GCStorage
     struct GCMemory* start;
 };
 
-void CheckGCMemoryValid(struct MM_GCMemory* mem)
+void CheckGCMemoryValid(struct GCMemory* mem)
 {
-    char* sig1 = mem->sig_start;
+    unsigned char* sig1 = mem->sig_start;
     for(int i = 0; i < GC_SIG_LEN; ++i)
     {
         if (sig1[i] != GC_SIG_START_CONTENT)
@@ -169,7 +169,7 @@ void CheckGCMemoryValid(struct MM_GCMemory* mem)
         }
     }
 
-    char* sig2 = mem->sig_start + GC_SIG_LEN + mem->size;
+    unsigned char* sig2 = mem->sig_start + GC_SIG_LEN + mem->size;
     for(int i = 0; i < GC_SIG_LEN; ++i)
     {
         if (sig2[i] != GC_SIG_END_CONTENT)
@@ -181,15 +181,15 @@ void CheckGCMemoryValid(struct MM_GCMemory* mem)
 
 struct MM_GCStorage* MM_NewGCStorage()
 {
-    struct MM_GCStorage* s = (struct MM_GCStorage*)mallc(sizeof(struct MM_GCStorage));
+    struct MM_GCStorage* s = (struct MM_GCStorage*)malloc(sizeof(struct MM_GCStorage));
     s->start = 0;
     return s;
 }
 
 void* MM_AllocateGCMemory(struct MM_GCStorage* storage, int size, const char* filename, int lineno)
 {
-    DCHECK(storage);
-    DCHECK(size);
+    DCHECK(storage != 0);
+    DCHECK(size != 0);
     
     if (size == 0)
     {
@@ -197,15 +197,15 @@ void* MM_AllocateGCMemory(struct MM_GCStorage* storage, int size, const char* fi
     }
 
     int realsize = sizeof(struct GCMemory) + sizeof(char) * GC_SIG_LEN + size;
-    struct MM_GCMemory* mem = (struct MM_GCMemory*)malloc(realsize);
+    struct GCMemory* mem = (struct GCMemory*)malloc(realsize);
     memset(mem, 0, realsize);
 
     mem->next     = storage->start;
     mem->filename = filename;
     mem->lineno   = lineno;
     mem->size     = size;
-    memcpy(mem->sig_start, GC_SIG_START_CONTENT, GC_SIG_LEN);
-    memcpy(mem->sig_start + GC_SIG_LEN + size, GC_SIG_END_CONTENT, GC_SIG_LEN);
+    memset(mem->sig_start, GC_SIG_START_CONTENT, GC_SIG_LEN);
+    memset(mem->sig_start + GC_SIG_LEN + size, GC_SIG_END_CONTENT, GC_SIG_LEN);
 
     storage->start = mem;
     return mem->sig_start + GC_SIG_LEN;
@@ -213,7 +213,7 @@ void* MM_AllocateGCMemory(struct MM_GCStorage* storage, int size, const char* fi
 
 void MM_MarkGCMemory(struct MM_GCStorage*, void* p)
 {
-    struct MM_GCMemory* mem = (char*)p - sizeof(struct MM_GCMemory);
+    struct GCMemory* mem = (struct GCMemory*)((char*)p - sizeof(struct GCMemory));
     CheckGCMemoryValid(mem);
 
     mem->flag |= GC_FLAG_MARKED;
@@ -221,7 +221,7 @@ void MM_MarkGCMemory(struct MM_GCStorage*, void* p)
 
 void MM_UnmarkGCStorage(struct MM_GCStorage* storage)
 {
-    struct MM_GCMemory* mem = storage->start;
+    struct GCMemory* mem = storage->start;
     while (mem != 0)
     {
         mem->flag &= ~GC_FLAG_MARKED;
@@ -231,13 +231,13 @@ void MM_UnmarkGCStorage(struct MM_GCStorage* storage)
 
 void MM_SweepGCMemory(struct MM_GCStorage* storage)
 {
-    struct MM_GCMemory*  mem = storage->mem;
-    struct MM_GCMemory** prev = &storage->mem;
+    struct GCMemory*  mem = storage->start;
+    struct GCMemory** prev = &storage->start;
     while (mem != 0)
     {
         if (!(mem->flag & GC_FLAG_MARKED))
         {
-            struct MM_GCMemory* next = mem->next;
+            struct GCMemory* next = mem->next;
             free(mem);
             *prev = next;
             mem   = next;
@@ -249,3 +249,24 @@ void MM_SweepGCMemory(struct MM_GCStorage* storage)
     }
 }
 
+void MM_DumpGCMemory(struct MM_GCStorage* storage)
+{
+	struct GCMemory* mem = storage->start;
+	if (mem == 0)
+	{
+		printf("no allocated memory in gc-storage 0x%x\n", storage);
+		return;
+	}
+	else
+	{
+		printf("gc-storage: 0x%x\n", storage);
+	}
+
+	while (mem != 0)
+	{
+		printf("address: 0x%x\tflag: 0x%x\tsize: 0x%x\nfile: %s:%d\n------------------------\n", mem, mem->flag, mem->size, mem->filename, mem->lineno);
+		CheckGCMemoryValid(mem);
+
+		mem = mem->next;
+	}
+}
