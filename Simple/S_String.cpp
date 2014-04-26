@@ -1,0 +1,58 @@
+#include "Common.h"
+#include "S_String.h"
+#include "DBG.h"
+
+#define DEFAULT_BUFFER_SIZE (0x100)
+
+struct StringBuffer
+{
+	int  total_size;
+	int  current_size;
+	char buf[1];	// char buf[size];
+};
+
+void S_OpenString(struct S_Interpreter* interpreter)
+{
+	DCHECK((interpreter->Flag & INTERPRETER_FLAG_OPENSTRING) == 0);
+	DCHECK(interpreter->PendingString == 0);
+
+	interpreter->Flag |= INTERPRETER_FLAG_OPENSTRING;
+
+	int init_size = sizeof(struct StringBuffer) - sizeof(char) + DEFAULT_BUFFER_SIZE;
+	struct StringBuffer* sb = (struct StringBuffer*)malloc(init_size);
+	DCHECK(sb != 0);
+
+	memset(sb, 0, init_size);
+	sb->total_size   = DEFAULT_BUFFER_SIZE;
+	sb->current_size = 0;
+	interpreter->PendingString = sb;
+}
+
+void S_AddStringChar(struct S_Interpreter* interpreter, char c)
+{
+	DCHECK((interpreter->Flag & INTERPRETER_FLAG_OPENSTRING) == 0);
+	DCHECK(interpreter->PendingString != 0);
+
+	struct StringBuffer* sb = (struct StringBuffer*)interpreter->PendingString;
+
+	// if remain buffer is not enough, allocate an new one and replace the old one.
+	if (sb->current_size >= sb->total_size)
+	{
+		int new_size = sb->total_size * 2 + sizeof(struct StringBuffer) - sizeof(char);
+		struct StringBuffer* new_sb = (struct StringBuffer*)malloc(new_size);
+		DCHECK(new_sb != 0);
+
+		memset(new_sb, 0, new_size);
+		new_sb->total_size   = sb->total_size * 2;
+		new_sb->current_size = sb->current_size;
+		memcpy(new_sb->buf, sb->buf, sb->current_size);
+
+		free(sb);
+		sb = new_sb;
+		interpreter->PendingString = sb;
+	}
+
+	sb->buf[sb->current_size] = c;
+	sb->current_size++;
+}
+

@@ -82,12 +82,14 @@
     <ClCompile Include="MM.cpp" />
     <ClCompile Include="Simple.cpp" />
     <ClCompile Include="S_Interpreter.cpp" />
+    <ClCompile Include="S_String.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
     <ClInclude Include="DBG.h" />
     <ClInclude Include="MM.h" />
     <ClInclude Include="S_Interpreter.h" />
+    <ClInclude Include="S_String.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
