@@ -13,6 +13,17 @@ struct S_Interpreter* S_NewInterpreter()
 	s->RunningStorage = MM_NewGCStorage();
 	DCHECK(s->RunningStorage != 0);
 
+	s->LineNo = 1;
 	return s;
+}
+
+void S_IncSrcLineNo(struct S_Interpreter* interpreter)
+{
+	interpreter->LineNo++;
+}
+
+int S_GetSrcLineNo(struct S_Interpreter* interpreter)
+{
+	return interpreter->LineNo;
 }
 

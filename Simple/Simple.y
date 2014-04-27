@@ -1,6 +1,7 @@
 %code requires 
 {
 	#include "S_Interpreter.h"
+  #define YYLTYPE int;
 }
 
 %defines

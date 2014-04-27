@@ -1,10 +1,15 @@
+%{
+#include "S_String.h"
+%}
+
 %option noyywrap nodefault interactive yylineno
+%start STRING_CONTENT COMMENT
 
 %%
-[0-9]+ {lvalp->int_number = atoi(yytext); return INTEGER;}
+[0-9]+ {yylloc = S_GetSrcLineNo(); yylval->int_number = atoi(yytext); return INTEGER;}
 
 \.[0-9]+ |
-[0-9]+\.[0-9]* {lvalp->double_number = atof(yytext); return DOUBLE;}
+[0-9]+\.[0-9]* {yylloc = S_GetSrcLineNo(); yylval->double_number = atof(yytext); return DOUBLE;}
 
 "+"  |
 "-"  |
@@ -16,23 +21,41 @@
 "}"  |
 "="  |
 ";"  |
-"^"  {return yytext[0];}
+"^"  {yylloc = S_GetSrcLineNo(); return yytext[0];}
 
-"function" {return FUNCTION;}
+"function" {yylloc = S_GetSrcLineNo(); return FUNCTION;}
 
-"global"   {return GLOBAL;}
+"global"   {yylloc = S_GetSrcLineNo(); return GLOBAL;}
 
-"return"   {return RETURN;}
+"return"   {yylloc = S_GetSrcLineNo(); return RETURN;}
 
-"while"    {return WHILE;}
+"while"    {yylloc = S_GetSrcLineNo(); return WHILE;}
 
-"if"       {return IF;}
+"if"       {yylloc = S_GetSrcLineNo(); return IF;}
 
-"else"     {return ELSE;}
+"else"     {yylloc = S_GetSrcLineNo(); return ELSE;}
 
-[a-zA-Z]   {return SYMBOL;}
+[a-zA-Z]   {yylloc = S_GetSrcLineNo(); return SYMBOL;}
 
+\n         {S_IncSrcLineNo(interpreter);}
 
+[ \t]      {}
+
+\"                   {yylloc = S_GetSrcLineNo(); S_OpenString(interpreter); BEGIN STRING_CONTENT;}
+<STRING_CONTENT>\"   {yylval->string = S_CloseString(interpreter); BEGIN INITIAL; return STRING;}
+<STRING_CONTENT>\n   {S_AddStringChar(interpreter, '\n'); S_IncSrcLineNo(interpreter);}
+<STRING_CONTENT>\\\" {S_AddStringChar(interpreter, '\"');} 
+<STRING_CONTENT>\\t  {S_AddStringChar(interpreter, '\t');}
+<STRING_CONTENT>\\n  {S_AddStringChar(interpreter, '\n');}
+<STRING_CONTENT>\\\\ {S_AddStringChar(interpreter, '\\');}
+<STRING_CONTENT>.    {S_AddStringChar(interpreter, yytext[0]);}
+
+"//" {BEGIN COMMENT;}
+"#"  {BEGIN COMMENT;}
+<COMMENT>\n {S_IncSrcLineNo(interpreter); BEGIN INITIAL;}
+<COMMENT>.  {}
+
+.          {}
 
 %%
 

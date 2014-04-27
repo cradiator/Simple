@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "S_String.h"
 #include "DBG.h"
+#include "MM.h"
 
 #define DEFAULT_BUFFER_SIZE (0x100)
 
@@ -16,6 +17,7 @@ void S_OpenString(struct S_Interpreter* interpreter)
 	DCHECK((interpreter->Flag & INTERPRETER_FLAG_OPENSTRING) == 0);
 	DCHECK(interpreter->PendingString == 0);
 
+	// mark flag and create a StrinBuffer for interpreter.
 	interpreter->Flag |= INTERPRETER_FLAG_OPENSTRING;
 
 	int init_size = sizeof(struct StringBuffer) - sizeof(char) + DEFAULT_BUFFER_SIZE;
@@ -52,7 +54,31 @@ void S_AddStringChar(struct S_Interpreter* interpreter, char c)
 		interpreter->PendingString = sb;
 	}
 
+	// buffer the char
 	sb->buf[sb->current_size] = c;
 	sb->current_size++;
+}
+
+char* S_CloseString(struct S_Interpreter* interpreter)
+{
+	DCHECK(interpreter != 0);
+	DCHECK((interpreter->Flag & INTERPRETER_FLAG_OPENSTRING) != 0);
+	DCHECK(interpreter->PendingString != 0);
+
+	// Copy string into ParsingStorage.
+	struct StringBuffer* sb = (struct StringBuffer*)interpreter->PendingString;
+	int str_size = sb->current_size + 1;
+
+	char* string = (char*)MM_AllocateStorage(interpreter->ParsingStorage, str_size);
+	DCHECK(string != 0);
+	memcpy(string, sb->buf, sb->current_size);
+	string[sb->current_size] = '\0';
+
+	// Free StringBuffer
+	free(sb);
+	interpreter->PendingString = 0;
+	interpreter->Flag &= ~INTERPRETER_FLAG_OPENSTRING;
+
+	return string;
 }
 
