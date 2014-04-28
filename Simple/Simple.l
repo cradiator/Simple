@@ -21,6 +21,7 @@
 "}"  |
 "="  |
 ";"  |
+","  |
 "^"  {yylloc = S_GetSrcLineNo(); return yytext[0];}
 
 "function" {yylloc = S_GetSrcLineNo(); return FUNCTION;}
@@ -34,6 +35,8 @@
 "if"       {yylloc = S_GetSrcLineNo(); return IF;}
 
 "else"     {yylloc = S_GetSrcLineNo(); return ELSE;}
+
+"nil"      {yylloc = S_GetSrcLineNo(); return NIL;}
 
 [a-zA-Z]   {yylloc = S_GetSrcLineNo(); return SYMBOL;}
 

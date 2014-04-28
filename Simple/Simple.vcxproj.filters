@@ -6,6 +6,7 @@
     <ClCompile Include="Simple.cpp" />
     <ClCompile Include="S_Interpreter.cpp" />
     <ClCompile Include="S_String.cpp" />
+    <ClCompile Include="S_Expression.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
@@ -13,5 +14,6 @@
     <ClInclude Include="MM.h" />
     <ClInclude Include="S_Interpreter.h" />
     <ClInclude Include="S_String.h" />
+    <ClInclude Include="S_Expression.h" />
   </ItemGroup>
 </Project>
