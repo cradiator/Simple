@@ -82,3 +82,19 @@ char* S_CloseString(struct S_Interpreter* interpreter)
 	return string;
 }
 
+char* S_AllocateStringInParsingStorage(struct S_Interpreter* interpreter, const char* string)
+{
+    DCHECK(interpreter != 0);
+    if (string == 0 || string[0] == '\0')
+    {
+        return "";
+    }
+
+    int str_len = strlen(string);
+    char* s = (char*)MM_AllocateStorage(interpreter->ParsingStorage, str_len + 1);
+    memcpy(s, string, str_len);
+    s[str_len] = '\0';
+
+    return s;
+}
+
