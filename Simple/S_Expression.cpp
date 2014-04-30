@@ -7,13 +7,10 @@
 //// Expression /////
 struct S_Expression_Nil* S_CreateExpressionNil(S_Interpreter* interpreter)
 {
-    struct S_Expression_Nil* e = 
-        (struct S_Expression_Nil*)MM_AllocateStorage(interpreter->ParsingStorage, 
-                                                      sizeof(struct S_Expression_Nil));
-    DCHECK(e != 0);
+    DCHECK(interpreter != 0);
 
-    e->header.type = EXPRESSION_TYPE_NIL;
-    return e;
+    static S_Expression_Nil e = {{EXPRESSION_TYPE_NIL}};
+    return &e;
 }
 
 struct S_Expression_Integer* S_CreateExpressionInteger(S_Interpreter* interpreter, int value)
@@ -38,6 +35,23 @@ struct S_Expression_Double* S_CreateExpressionDouble(S_Interpreter* interpreter,
     e->value = value;
     return e;
 }
+
+struct S_Expression_True* S_CreateExpressionTrue(S_Interpreter* interpreter)
+{
+    DCHECK(interpreter != 0);
+
+    static S_Expression_True e = {{EXPRESSION_TYPE_TRUE}};
+    return &e;
+}
+
+struct S_Expression_False* S_CreateExpressionFalse(S_Interpreter* interpreter)
+{
+    DCHECK(interpreter != 0);
+
+    static S_Expression_False e = {{EXPRESSION_TYPE_FALSE}};
+    return &e;
+}
+
 
 struct S_Expression_String* S_CreateExpressionString(struct S_Interpreter* interpreter, char* string)
 {
@@ -323,6 +337,26 @@ struct S_Statement_While* S_CreateStatementWhile(struct S_Interpreter* interpret
     return s;
 }
 
+struct S_Statement_If* S_CreateStatementIf(struct S_Interpreter* interpreter,
+                                           struct S_Expression* condition,
+                                           struct S_Code_Block* body,
+                                           struct S_Code_Block* else_body)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(condition != 0);
+    DCHECK(body != 0);
+
+    struct S_Statement_If* s = 
+        (struct S_Statement_If*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                   sizeof(struct S_Statement_If));
+    DCHECK(s != 0);
+
+    s->header.type = STATEMENT_TYPE_IF;
+    s->condition = condition;
+    s->body = body;
+    s->else_body = else_body;
+    return s;
+}
 //// End of Statement ////
 
 //// Statement List ////

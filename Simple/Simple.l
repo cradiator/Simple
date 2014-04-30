@@ -31,6 +31,9 @@
 "<=" {yylloc = S_GetSrcLineNo(); yylval.cmp_type = OP2_LE; return CMP;}
 "!=" {yylloc = S_GetSrcLineNo(); yylval.cmp_type = OP2_NE; return CMP;}
 
+"&&" {yylloc = S_GetSrcLineNo(); yylval.rel_type = OP2_AND; return REL;}
+"||" {yylloc = S_GetSrcLineNo(); yylval.rel_type = OP2_OR; return REL;}
+
 "function" {yylloc = S_GetSrcLineNo(); return FUNCTION;}
 
 "global"   {yylloc = S_GetSrcLineNo(); return GLOBAL;}
@@ -44,6 +47,10 @@
 "else"     {yylloc = S_GetSrcLineNo(); return ELSE;}
 
 "nil"      {yylloc = S_GetSrcLineNo(); return NIL;}
+
+"true"     {yylloc = S_GetSrcLineNo(); return TRUE;}
+
+"false"    {yylloc = S_GetSrcLineNo(); return FALSE;}
 
 [a-zA-Z]   {yylloc = S_GetSrcLineNo(); yylval.id = S_AllocateStringInParsingStorage(interpreter, yytext); return SYMBOL;}
 

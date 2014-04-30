@@ -14,6 +14,8 @@ enum {
     EXPRESSION_TYPE_NIL = 0,
     EXPRESSION_TYPE_INTEGER,
     EXPRESSION_TYPE_DOUBLE,
+    EXPRESSION_TYPE_TRUE,
+    EXPRESSION_TYPE_FALSE,
     EXPRESSION_TYPE_STRING,
     EXPRESSION_TYPE_SYMBOL,
     EXPRESSION_TYPE_NEGATION,
@@ -25,6 +27,8 @@ enum {
 enum {
     OP2_MIN = 0,
     OP2_ASSIGN = OP2_MIN,
+    OP2_AND,
+    OP2_OR,
     OP2_G,
     OP2_GE,
     OP2_E,
@@ -43,7 +47,7 @@ struct S_Expression_Header {
     int type;
 };
 
-struct S_Expresstion {
+struct S_Expression {
     struct S_Expression_Header header;
 };
 
@@ -59,6 +63,14 @@ struct S_Expression_Integer {
 struct S_Expression_Double {
     struct S_Expression_Header header;
     double value;
+};
+
+struct S_Expression_True {
+    struct S_Expression_Header header;
+};
+
+struct S_Expression_False {
+    struct S_Expression_Header header;
 };
 
 struct S_Expression_String {
@@ -102,6 +114,10 @@ struct S_Expression_Nil* S_CreateExpressionNil(struct S_Interpreter* interpreter
 struct S_Expression_Integer* S_CreateExpressionInteger(struct S_Interpreter* interpreter, int value);
 
 struct S_Expression_Double* S_CreateExpressionDouble(struct S_Interpreter* interpreter, double value);
+
+struct S_Expression_True* S_CreateExpressionTrue(struct S_Interpreter* interpreter);
+
+struct S_Expression_False* S_CreateExpressionFalse(struct S_Interpreter* interpreter);
 
 // This function would take ownership of string.
 struct S_Expression_String* S_CreateExpressionString(struct S_Interpreter* interpreter, char* string);
@@ -205,6 +221,13 @@ struct S_Statement_While {
     struct S_Code_Block* body;
 };
 
+struct S_Statement_If {
+    struct S_Statement_Header header;
+    struct S_Expression* condition;
+    struct S_Code_Block* body;
+    struct S_Code_Block* else_body;
+};
+
 struct S_Statement_Expression* S_CreateStatementExpression(struct S_Interpreter* interpreter, 
                                                            struct S_Expression* expression);
 
@@ -222,6 +245,12 @@ struct S_Statement_Function_Define* S_CreateStatementFunctionDefine(struct S_Int
 struct S_Statement_While* S_CreateStatementWhile(struct S_Interpreter* interpreter,
                                                  struct S_Expression* condition,
                                                  struct S_Code_Block* body);
+
+// else_body could be NULL
+struct S_Statement_If* S_CreateStatementIf(struct S_Interpreter* interpreter,
+                                           struct S_Expression* condition,
+                                           struct S_Code_Block* body,
+                                           struct S_Code_Block* else_body);
 
 //// End of Statement ////
 
