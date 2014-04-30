@@ -104,6 +104,25 @@ struct S_Expression_Function_Call* S_CreateExpressionFunctionCall(struct S_Inter
     return e;
 }
 
+struct S_Expression_Function_Define* S_CreateExpressionFunctionDefine(struct S_Interpreter* interpreter,
+                                                                      struct S_Parameter_List* param,
+                                                                      struct S_Code_Block* code)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(param != 0);
+    DCHECK(code != 0);
+
+    struct S_Expression_Function_Define* e = 
+        (struct S_Expression_Function_Define*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                                 sizeof(struct S_Expression_Function_Define));
+    DCHECK(e != 0);
+
+    e->header.type = EXPRESSION_TYPE_FUNCTION_DEFINE;
+    e->param = param;
+    e->code  = code;
+    return e;
+}
+
 struct S_Expression_Op2* S_CreateExpressionOp2(struct S_Interpreter* interpreter,
                                                int op,
                                                struct S_Expression* exp1,
@@ -182,7 +201,7 @@ struct S_Parameter_List* S_CreateParamList(struct S_Interpreter* interpreter, st
                                                      sizeof(struct S_Parameter_List));
     DCHECK(param_list != 0);
 
-    param_list->next = NULL;
+    param_list->next = 0;
     param_list->symbol = param;
     return param_list;
 }
@@ -204,7 +223,7 @@ void S_AddParameterToParamList(struct S_Interpreter* interpreter, struct S_Param
     struct S_Parameter_List* next =
         (struct S_Parameter_List*)MM_AllocateStorage(interpreter->ParsingStorage,
                                                      sizeof(struct S_Parameter_List));
-    next->next = NULL;
+    next->next = 0;
     next->symbol = param;
 
     // push back the new node.
@@ -216,3 +235,165 @@ void S_AddParameterToParamList(struct S_Interpreter* interpreter, struct S_Param
 
 //// End of Parameter List ////
 
+//// Statement ////
+struct S_Statement_Expression* S_CreateStatementExpression(struct S_Interpreter* interpreter, 
+                                                           struct S_Expression* expression)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(expression != 0);
+
+    struct S_Statement_Expression* s = 
+        (struct S_Statement_Expression*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                           sizeof(struct S_Statement_Expression));
+    DCHECK(s != 0);
+
+    s->header.type = STATEMENT_TYPE_EXPRESSION;
+    s->exp = expression;
+    return s; 
+}
+
+struct S_Statement_Global* S_CreateStatementGlobal(struct S_Interpreter* interpreter,
+                                                   struct S_Expression_Symbol* symbol)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(symbol != 0);
+
+    struct S_Statement_Global* s = 
+        (struct S_Statement_Global*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                       sizeof(struct S_Statement_Global));
+    DCHECK(s != 0);
+
+    s->header.type = STATEMENT_TYPE_GLOBAL;
+    s->symbol = symbol;
+    return s; 
+}
+
+struct S_Statement_Return* S_CreateStatementReturn(struct S_Interpreter* interpreter, 
+                                                   struct S_Expression* expression)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(expression != 0);
+
+    struct S_Statement_Return* s = 
+        (struct S_Statement_Return*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                       sizeof(struct S_Statement_Return));
+    DCHECK(s != 0);
+
+    s->header.type = STATEMENT_TYPE_RETURN;
+    s->exp = expression;
+    return s; 
+}
+
+struct S_Statement_Function_Define* S_CreateStatementFunctionDefine(struct S_Interpreter* interpreter,
+                                                                    struct S_Expression* name,
+                                                                    struct S_Parameter_List* param,
+                                                                    struct S_Code_Block* code)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(name != 0);
+    DCHECK(param != 0);
+    DCHECK(code != 0);
+    DCHECK(name->header.type == EXPRESSION_TYPE_SYMBOL);
+
+    struct S_Statement_Function_Define* s = 
+        (struct S_Statement_Function_Define*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                                sizeof(struct S_Statement_Function_Define));
+    DCHECK(s != 0);
+    s->header.type = STATEMENT_TYPE_FUNCTION_DEFINE;
+    s->name = (struct S_Expression_Symbol*)name;
+    s->param = param;
+    s->code = code;
+    return s;
+}
+
+struct S_Statement_While* S_CreateStatementWhile(struct S_Interpreter* interpreter,
+                                                 struct S_Expression* condition,
+                                                 struct S_Code_Block* body)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(condition != 0);
+    DCHECK(body != 0);
+
+    struct S_Statement_While* s = 
+        (struct S_Statement_While*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                      sizeof(struct S_Statement_While));
+    s->header.type = STATEMENT_TYPE_WHILE;
+    s->condition = condition;
+    s->body = body;
+    return s;
+}
+
+//// End of Statement ////
+
+//// Statement List ////
+struct S_Statement_List* S_CreateStatementList(struct S_Interpreter* interpreter, 
+                                               struct S_Statement* statement)
+{
+    DCHECK(interpreter != 0);
+
+    struct S_Statement_List* stat_list = 
+        (struct S_Statement_List*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                     sizeof(struct S_Statement_List));
+    DCHECK(stat_list != 0);
+
+    stat_list->next = 0;
+    stat_list->stat = statement;
+    return stat_list;
+}
+
+void S_AddStatementToStatList(struct S_Interpreter* interpreter,
+                              struct S_Statement_List* stat_list,
+                              struct S_Statement* statement)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(stat_list != 0);
+    DCHECK(statement != 0);
+
+    if (stat_list->stat == 0)
+    {
+        DCHECK(stat_list->next == 0);
+        stat_list->stat = statement;
+        return;
+    }
+
+    struct S_Statement_List* next = 
+        (struct S_Statement_List*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                     sizeof(struct S_Statement_List));
+    DCHECK(next != 0);
+
+    next->next = 0;
+    next->stat = statement;
+
+    while (stat_list->next != 0)
+        stat_list = stat_list->next;
+
+    stat_list->next = next;
+}
+
+//// End of Statement List ////
+
+//// Code Block ////
+
+struct S_Code_Block* S_CreateCodeBlock(struct S_Interpreter* interpreter,
+                                       struct S_Statement_List* stat_list)
+{
+    DCHECK(interpreter != 0);
+    
+    struct S_Code_Block* code_block = 
+        (struct S_Code_Block*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                 sizeof(struct S_Code_Block));
+    DCHECK(code_block != 0);
+
+    if (stat_list == 0)
+    {
+        code_block->stat_list = S_CreateStatementList(interpreter, 0);
+    }
+    else
+    {
+        code_block->stat_list = stat_list;
+    }
+
+    return code_block;
+}
+
+//// End of Clode Block ////

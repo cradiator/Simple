@@ -18,10 +18,10 @@
   char*  string;
   int    cmp_type;
 
-  struct S_Expression*     expression;
-  struct S_Statement*      statement;	
-  struct S_StatementList*  statement_list;
-  struct S_CodeBlock*      code_block;
+  struct S_Expression*      expression;
+  struct S_Statement*       statement;	
+  struct S_Statement_List*  statement_list;
+  struct S_Code_Block*      code_block;
   struct S_Expression_List* expression_list;
   struct S_Parameter_List*  parameter_list;
 }
@@ -50,11 +50,12 @@
 
 %%
 
-block : '{' stat_list '}' {}
+block : '{' stat_list '}' {$$ = S_CreateCodeBlock(interpreter, $2);}
       ;
 
-stat_list : stat_list stat {}
-          | stat {}
+stat_list : stat_list stat {S_AddStatementToStatList(interpreter, $1, $2); $$ = $1;}
+          | stat {$$ = S_CreateStatementList(interpreter, $1);}
+          | {$$ = S_CreateStatementList(interpreter, 0);}
           ;
 
 param_list : param_list ',' SYMBOL {S_AddParameterToParamList(interpreter, $1, $3); $$ = $1;}
@@ -67,17 +68,17 @@ expr_list : expr_list ',' expr {S_AddExpressionToExpList(interpreter, $1, $3); $
           | {$$ = S_CreateExpList(interpreter, 0);}
           ;
 
-stat : expr ';' {}
-     | GLOBAL SYMBOL ';' {}
-     | RETURN expr ';' {}
-     | FUNCTION SYMBOL '(' param_list ')' block {}
-     | WHILE '(' expr ')' block {}
+stat : expr ';' {$$ = (struct S_Statement*)S_CreateStatementExpression(interpreter, $1);}
+     | GLOBAL SYMBOL ';' {$$ = (struct S_Statement*)S_CreateStatementGlobal(interpreter, $2);}
+     | RETURN expr ';' {$$ = (struct S_Statement*)S_CreateStatementReturn(interpreter, $2);}
+     | FUNCTION SYMBOL '(' param_list ')' block {$$ = (struct S_Statement*)S_CreateStatementFunctionDefine(interpreter, $2, $4, $6);}
+     | WHILE '(' expr ')' block {$$ = (struct S_Statement*)S_CreateStatementWhile(interpreter, $3, $5);}
      | IF '(' expr ')' block {}
      | IF '(' expr ')' block ELSE block {}
      ;
 
 expr : assign {$$ = $1;}
-     | FUNCTION '(' param_list ')' block {}
+     | FUNCTION '(' param_list ')' block {$$ = S_CreateExpressionFunctionDefine(interpreter, $3, $5);}
      ;
 
 assign : assign '=' cmp {$$ = (S_Expression*)S_CreateExpressionOp2(interpreter, OP2_ASSIGN, $1, $3);}
