@@ -299,7 +299,7 @@ struct S_Statement_Return* S_CreateStatementReturn(struct S_Interpreter* interpr
 }
 
 struct S_Statement_Function_Define* S_CreateStatementFunctionDefine(struct S_Interpreter* interpreter,
-                                                                    struct S_Expression* name,
+                                                                    struct S_Expression_Symbol* name,
                                                                     struct S_Parameter_List* param,
                                                                     struct S_Code_Block* code)
 {
@@ -307,14 +307,13 @@ struct S_Statement_Function_Define* S_CreateStatementFunctionDefine(struct S_Int
     DCHECK(name != 0);
     DCHECK(param != 0);
     DCHECK(code != 0);
-    DCHECK(name->header.type == EXPRESSION_TYPE_SYMBOL);
 
     struct S_Statement_Function_Define* s = 
         (struct S_Statement_Function_Define*)MM_AllocateStorage(interpreter->ParsingStorage,
                                                                 sizeof(struct S_Statement_Function_Define));
     DCHECK(s != 0);
     s->header.type = STATEMENT_TYPE_FUNCTION_DEFINE;
-    s->name = (struct S_Expression_Symbol*)name;
+    s->name = name;
     s->param = param;
     s->code = code;
     return s;

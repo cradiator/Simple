@@ -79,8 +79,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DBG.cpp" />
+    <ClCompile Include="ERR.cpp" />
+    <ClCompile Include="lex.yy.c" />
     <ClCompile Include="MM.cpp" />
     <ClCompile Include="Simple.cpp" />
+    <ClCompile Include="simple.tab.c" />
     <ClCompile Include="S_Expression.cpp" />
     <ClCompile Include="S_Interpreter.cpp" />
     <ClCompile Include="S_String.cpp" />
@@ -88,7 +91,9 @@
   <ItemGroup>
     <ClInclude Include="Common.h" />
     <ClInclude Include="DBG.h" />
+    <ClInclude Include="ERR.h" />
     <ClInclude Include="MM.h" />
+    <ClInclude Include="simple.tab.h" />
     <ClInclude Include="S_Expression.h" />
     <ClInclude Include="S_Interpreter.h" />
     <ClInclude Include="S_String.h" />

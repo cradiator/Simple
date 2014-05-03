@@ -7,6 +7,9 @@
     <ClCompile Include="S_Interpreter.cpp" />
     <ClCompile Include="S_String.cpp" />
     <ClCompile Include="S_Expression.cpp" />
+    <ClCompile Include="ERR.cpp" />
+    <ClCompile Include="lex.yy.c" />
+    <ClCompile Include="simple.tab.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
@@ -15,5 +18,7 @@
     <ClInclude Include="S_Interpreter.h" />
     <ClInclude Include="S_String.h" />
     <ClInclude Include="S_Expression.h" />
+    <ClInclude Include="ERR.h" />
+    <ClInclude Include="simple.tab.h" />
   </ItemGroup>
 </Project>

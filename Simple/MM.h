@@ -4,7 +4,7 @@
 struct MM_Storage;
 
 // Create an new storage.
-struct MM_Storage* MM_NewStorage(unsigned int init_size = 0);
+struct MM_Storage* MM_NewStorage(unsigned int init_size /*= 0*/);
 
 // Allocate space from storage.
 // If the reserved space is full, the storage would grow automatically.
@@ -12,7 +12,6 @@ void* MM_AllocateStorage(struct MM_Storage* storage, unsigned int size);
 
 // Release the storage.
 void MM_FreeStorage(struct MM_Storage* storage);
-
 
 
 //// utility for gc memroy

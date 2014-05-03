@@ -125,7 +125,7 @@ struct S_Expression_String* S_CreateExpressionString(struct S_Interpreter* inter
 // This function would take ownership of symbol.
 struct S_Expression_Symbol* S_CreateExpressionSymbol(struct S_Interpreter* interpreter, char* symbol);
 
-struct S_Expression_Negation* S_CreateExpressionNegation(struct S_Interprete* interpreter, struct S_Expression* exp);
+struct S_Expression_Negation* S_CreateExpressionNegation(struct S_Interpreter* interpreter, struct S_Expression* exp);
 
 struct S_Expression_Function_Call* S_CreateExpressionFunctionCall(struct S_Interpreter* interpreter,
                                                                   struct S_Expression *fn,
@@ -238,7 +238,7 @@ struct S_Statement_Return* S_CreateStatementReturn(struct S_Interpreter* interpr
                                                    struct S_Expression* expression);
 
 struct S_Statement_Function_Define* S_CreateStatementFunctionDefine(struct S_Interpreter* interpreter,
-                                                                    struct S_Expression*  name,
+                                                                    struct S_Expression_Symbol*  name,
                                                                     struct S_Parameter_List* param,
                                                                     struct S_Code_Block* code);
 
