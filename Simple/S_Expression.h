@@ -109,33 +109,33 @@ struct S_Expression_Op2 {
 };
 
 
-struct S_Expression_Nil* S_CreateExpressionNil(struct S_Interpreter* interpreter);
+EXTERN_C struct S_Expression_Nil* S_CreateExpressionNil(struct S_Interpreter* interpreter);
 
-struct S_Expression_Integer* S_CreateExpressionInteger(struct S_Interpreter* interpreter, int value);
+EXTERN_C struct S_Expression_Integer* S_CreateExpressionInteger(struct S_Interpreter* interpreter, int value);
 
-struct S_Expression_Double* S_CreateExpressionDouble(struct S_Interpreter* interpreter, double value);
+EXTERN_C struct S_Expression_Double* S_CreateExpressionDouble(struct S_Interpreter* interpreter, double value);
 
-struct S_Expression_True* S_CreateExpressionTrue(struct S_Interpreter* interpreter);
+EXTERN_C struct S_Expression_True* S_CreateExpressionTrue(struct S_Interpreter* interpreter);
 
-struct S_Expression_False* S_CreateExpressionFalse(struct S_Interpreter* interpreter);
+EXTERN_C struct S_Expression_False* S_CreateExpressionFalse(struct S_Interpreter* interpreter);
 
 // This function would take ownership of string.
-struct S_Expression_String* S_CreateExpressionString(struct S_Interpreter* interpreter, char* string);
+EXTERN_C struct S_Expression_String* S_CreateExpressionString(struct S_Interpreter* interpreter, char* string);
 
 // This function would take ownership of symbol.
-struct S_Expression_Symbol* S_CreateExpressionSymbol(struct S_Interpreter* interpreter, char* symbol);
+EXTERN_C struct S_Expression_Symbol* S_CreateExpressionSymbol(struct S_Interpreter* interpreter, char* symbol);
 
-struct S_Expression_Negation* S_CreateExpressionNegation(struct S_Interpreter* interpreter, struct S_Expression* exp);
+EXTERN_C struct S_Expression_Negation* S_CreateExpressionNegation(struct S_Interpreter* interpreter, struct S_Expression* exp);
 
-struct S_Expression_Function_Call* S_CreateExpressionFunctionCall(struct S_Interpreter* interpreter,
+EXTERN_C struct S_Expression_Function_Call* S_CreateExpressionFunctionCall(struct S_Interpreter* interpreter,
                                                                   struct S_Expression *fn,
                                                                   struct S_Expression_List* param);
 
-struct S_Expression_Function_Define* S_CreateExpressionFunctionDefine(struct S_Interpreter* interpreter,
+EXTERN_C struct S_Expression_Function_Define* S_CreateExpressionFunctionDefine(struct S_Interpreter* interpreter,
                                                                       struct S_Parameter_List* param,
                                                                       struct S_Code_Block* code);
 
-struct S_Expression_Op2* S_CreateExpressionOp2(struct S_Interpreter* interpreter, 
+EXTERN_C struct S_Expression_Op2* S_CreateExpressionOp2(struct S_Interpreter* interpreter, 
                                                int op, 
                                                struct S_Expression* exp1, 
                                                struct S_Expression* exp2);
@@ -151,11 +151,11 @@ struct S_Expression_List {
 
 // Create an expression list. parameter exp could be NULL.
 // Create an empty expression list if exp is NULL.
-struct S_Expression_List* S_CreateExpList(struct S_Interpreter* interpreter, struct S_Expression* exp);
+EXTERN_C struct S_Expression_List* S_CreateExpList(struct S_Interpreter* interpreter, struct S_Expression* exp);
 
 // Add an expression into expression list.
 // exp could not be NULL.
-void S_AddExpressionToExpList(struct S_Interpreter* interpreter, struct S_Expression_List* exp_list, struct S_Expression* exp);
+EXTERN_C void S_AddExpressionToExpList(struct S_Interpreter* interpreter, struct S_Expression_List* exp_list, struct S_Expression* exp);
 
 //// End of Expression List ////
 
@@ -167,11 +167,11 @@ struct S_Parameter_List {
 
 // Create an parameter list. param could be NULL.
 // Create an empty parameter list if param is NULL.
-struct S_Parameter_List* S_CreateParamList(struct S_Interpreter* interpreter, struct S_Expression_Symbol* param);
+EXTERN_C struct S_Parameter_List* S_CreateParamList(struct S_Interpreter* interpreter, struct S_Expression_Symbol* param);
 
 // Add an parameter into param list.
 // param could not be NULL.
-void S_AddParameterToParamList(struct S_Interpreter* interpreter, struct S_Parameter_List* param_list, struct S_Expression_Symbol* param);
+EXTERN_C void S_AddParameterToParamList(struct S_Interpreter* interpreter, struct S_Parameter_List* param_list, struct S_Expression_Symbol* param);
 
 //// End of Parameter List ////
 
@@ -228,26 +228,26 @@ struct S_Statement_If {
     struct S_Code_Block* else_body;
 };
 
-struct S_Statement_Expression* S_CreateStatementExpression(struct S_Interpreter* interpreter, 
+EXTERN_C struct S_Statement_Expression* S_CreateStatementExpression(struct S_Interpreter* interpreter, 
                                                            struct S_Expression* expression);
 
-struct S_Statement_Global* S_CreateStatementGlobal(struct S_Interpreter* interpreter,
+EXTERN_C struct S_Statement_Global* S_CreateStatementGlobal(struct S_Interpreter* interpreter,
                                                    struct S_Expression_Symbol* symbol);
 
-struct S_Statement_Return* S_CreateStatementReturn(struct S_Interpreter* interpreter, 
+EXTERN_C struct S_Statement_Return* S_CreateStatementReturn(struct S_Interpreter* interpreter, 
                                                    struct S_Expression* expression);
 
-struct S_Statement_Function_Define* S_CreateStatementFunctionDefine(struct S_Interpreter* interpreter,
+EXTERN_C struct S_Statement_Function_Define* S_CreateStatementFunctionDefine(struct S_Interpreter* interpreter,
                                                                     struct S_Expression_Symbol*  name,
                                                                     struct S_Parameter_List* param,
                                                                     struct S_Code_Block* code);
 
-struct S_Statement_While* S_CreateStatementWhile(struct S_Interpreter* interpreter,
+EXTERN_C struct S_Statement_While* S_CreateStatementWhile(struct S_Interpreter* interpreter,
                                                  struct S_Expression* condition,
                                                  struct S_Code_Block* body);
 
 // else_body could be NULL
-struct S_Statement_If* S_CreateStatementIf(struct S_Interpreter* interpreter,
+EXTERN_C struct S_Statement_If* S_CreateStatementIf(struct S_Interpreter* interpreter,
                                            struct S_Expression* condition,
                                            struct S_Code_Block* body,
                                            struct S_Code_Block* else_body);
@@ -262,12 +262,12 @@ struct S_Statement_List {
 
 // Create a statment list.
 // The parameter statement could be NULL, and would create an empty list.
-struct S_Statement_List* S_CreateStatementList(struct S_Interpreter* interpreter, 
+EXTERN_C struct S_Statement_List* S_CreateStatementList(struct S_Interpreter* interpreter, 
                                                struct S_Statement* statement);
 
 // Add a statement to stat-list.
 // statement could not be NULL.
-void S_AddStatementToStatList(struct S_Interpreter* interpreter,
+EXTERN_C void S_AddStatementToStatList(struct S_Interpreter* interpreter,
                               struct S_Statement_List* stat_list,
                               struct S_Statement* statement);
 
@@ -280,7 +280,7 @@ struct S_Code_Block {
 
 // Create an code block.
 // stat_list could be NULL.
-struct S_Code_Block* S_CreateCodeBlock(struct S_Interpreter* interpreter,
+EXTERN_C struct S_Code_Block* S_CreateCodeBlock(struct S_Interpreter* interpreter,
                                        struct S_Statement_List* stat_list);
 
 //// End of Clode Block ////

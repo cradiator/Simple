@@ -11,7 +11,7 @@
 }
 
 %defines
-%locations
+%locations 
 // %define api.pure full
 %parse-param {struct S_Interpreter* interpreter}
 %lex-param   {struct S_Interpreter* interpreter}
@@ -39,6 +39,7 @@
 %token<cmp_type> CMP
 %token<rel_type> REL
 %token RETURN GLOBAL FUNCTION WHILE IF ELSE NIL TRUE FALSE
+%token ERROR_LEXICAL_MARK
 
 %left  REL
 %left  CMP
@@ -49,14 +50,16 @@
 
 %type<expression> expr cmp rel assign add_sub mul_div factor func_call term 
 %type<statement> stat
-%type<statement_list> stat_list
+%type<statement_list> stat_list start
 %type<code_block> block
 %type<parameter_list> param_list
 %type<expression_list> expr_list
 
-%start stat_list
+%start start
 
 %%
+start : stat_list {interpreter->StatementList = $1; $$ = $1;}
+      ;
 
 block : '{' stat_list '}' {$$ = S_CreateCodeBlock(interpreter, $2);}
       | '{' '}' {$$ = S_CreateCodeBlock(interpreter, S_CreateStatementList(interpreter, 0));}
@@ -128,6 +131,7 @@ term : INTEGER {$$ = (struct S_Expression*)S_CreateExpressionInteger(interpreter
      | FALSE {$$ = (struct S_Expression*)S_CreateExpressionFalse(interpreter);}
      | '(' expr ')' {$$ = $2;}
      | '-' term {$$ = (struct S_Expression*)S_CreateExpressionNegation(interpreter, $2);}
+     | ERROR_LEXICAL_MARK {YYABORT;}
      ;
 %%
 

@@ -32,7 +32,7 @@ void S_OpenString(struct S_Interpreter* interpreter)
 
 void S_AddStringChar(struct S_Interpreter* interpreter, char c)
 {
-	DCHECK((interpreter->Flag & INTERPRETER_FLAG_OPENSTRING) == 0);
+	DCHECK((interpreter->Flag & INTERPRETER_FLAG_OPENSTRING) != 0);
 	DCHECK(interpreter->PendingString != 0);
 
 	struct StringBuffer* sb = (struct StringBuffer*)interpreter->PendingString;

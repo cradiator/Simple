@@ -12,59 +12,59 @@
 %start STRING_CONTENT COMMENT
 
 %%
-[0-9]+ {yylloc = S_GetSrcLineNo(interpreter); yylval.int_number = atoi(yytext); return INTEGER;}
+<INITIAL>[0-9]+ {yylloc = S_GetSrcLineNo(interpreter); yylval.int_number = atoi(yytext); return INTEGER;}
 
-\.[0-9]+ |
-[0-9]+\.[0-9]* {yylloc = S_GetSrcLineNo(interpreter); yylval.double_number = atof(yytext); return DOUBLE;}
+<INITIAL>\.[0-9]+ |
+<INITIAL>[0-9]+\.[0-9]* {yylloc = S_GetSrcLineNo(interpreter); yylval.double_number = atof(yytext); return DOUBLE;}
 
-"+"  |
-"-"  |
-"*"  |
-"/"  |
-"("  |
-")"  |
-"{"  |
-"}"  |
-"="  |
-";"  |
-","  |
-"^"  {yylloc = S_GetSrcLineNo(interpreter); return yytext[0];}
+<INITIAL>"+"  |
+<INITIAL>"-"  |
+<INITIAL>"*"  |
+<INITIAL>"/"  |
+<INITIAL>"("  |
+<INITIAL>")"  |
+<INITIAL>"{"  |
+<INITIAL>"}"  |
+<INITIAL>"="  |
+<INITIAL>";"  |
+<INITIAL>","  |
+<INITIAL>"^"  {yylloc = S_GetSrcLineNo(interpreter); return yytext[0];}
 
-">"  {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_G; return CMP;}
-">=" {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_GE; return CMP;}
-"==" {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_E; return CMP;}
-"<"  {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_L; return CMP;}
-"<=" {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_LE; return CMP;}
-"!=" {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_NE; return CMP;}
+<INITIAL>">"  {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_G; return CMP;}
+<INITIAL>">=" {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_GE; return CMP;}
+<INITIAL>"==" {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_E; return CMP;}
+<INITIAL>"<"  {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_L; return CMP;}
+<INITIAL>"<=" {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_LE; return CMP;}
+<INITIAL>"!=" {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_NE; return CMP;}
 
-"&&" {yylloc = S_GetSrcLineNo(interpreter); yylval.rel_type = OP2_AND; return REL;}
-"||" {yylloc = S_GetSrcLineNo(interpreter); yylval.rel_type = OP2_OR; return REL;}
+<INITIAL>"&&" {yylloc = S_GetSrcLineNo(interpreter); yylval.rel_type = OP2_AND; return REL;}
+<INITIAL>"||" {yylloc = S_GetSrcLineNo(interpreter); yylval.rel_type = OP2_OR; return REL;}
 
-"function" {yylloc = S_GetSrcLineNo(interpreter); return FUNCTION;}
+<INITIAL>"function" {yylloc = S_GetSrcLineNo(interpreter); return FUNCTION;}
 
-"global"   {yylloc = S_GetSrcLineNo(interpreter); return GLOBAL;}
+<INITIAL>"global"   {yylloc = S_GetSrcLineNo(interpreter); return GLOBAL;}
 
-"return"   {yylloc = S_GetSrcLineNo(interpreter); return RETURN;}
+<INITIAL>"return"   {yylloc = S_GetSrcLineNo(interpreter); return RETURN;}
 
-"while"    {yylloc = S_GetSrcLineNo(interpreter); return WHILE;}
+<INITIAL>"while"    {yylloc = S_GetSrcLineNo(interpreter); return WHILE;}
 
-"if"       {yylloc = S_GetSrcLineNo(interpreter); return IF;}
+<INITIAL>"if"       {yylloc = S_GetSrcLineNo(interpreter); return IF;}
 
-"else"     {yylloc = S_GetSrcLineNo(interpreter); return ELSE;}
+<INITIAL>"else"     {yylloc = S_GetSrcLineNo(interpreter); return ELSE;}
 
-"nil"      {yylloc = S_GetSrcLineNo(interpreter); return NIL;}
+<INITIAL>"nil"      {yylloc = S_GetSrcLineNo(interpreter); return NIL;}
 
-"true"     {yylloc = S_GetSrcLineNo(interpreter); return TRUE;}
+<INITIAL>"true"     {yylloc = S_GetSrcLineNo(interpreter); return TRUE;}
 
-"false"    {yylloc = S_GetSrcLineNo(interpreter); return FALSE;}
+<INITIAL>"false"    {yylloc = S_GetSrcLineNo(interpreter); return FALSE;}
 
-[a-zA-Z]   {yylloc = S_GetSrcLineNo(interpreter); yylval.id = S_AllocateStringInParsingStorage(interpreter, yytext); return SYMBOL;}
+<INITIAL>[a-zA-Z_][a-zA-Z0-9_]*   {yylloc = S_GetSrcLineNo(interpreter); yylval.id = S_AllocateStringInParsingStorage(interpreter, yytext); return SYMBOL;}
 
-\n         {S_IncSrcLineNo(interpreter);}
+<INITIAL>\n         {S_IncSrcLineNo(interpreter);}
 
-[ \t]      {}
+<INITIAL>[ \t\r]    {}
 
-\"                   {yylloc = S_GetSrcLineNo(interpreter); S_OpenString(interpreter); BEGIN STRING_CONTENT;}
+<INITIAL>\"          {yylloc = S_GetSrcLineNo(interpreter); S_OpenString(interpreter); BEGIN STRING_CONTENT;}
 <STRING_CONTENT>\"   {yylval.string = S_CloseString(interpreter); BEGIN INITIAL; return STRING;}
 <STRING_CONTENT>\n   {S_AddStringChar(interpreter, '\n'); S_IncSrcLineNo(interpreter);}
 <STRING_CONTENT>\\\" {S_AddStringChar(interpreter, '\"');} 
@@ -73,12 +73,13 @@
 <STRING_CONTENT>\\\\ {S_AddStringChar(interpreter, '\\');}
 <STRING_CONTENT>.    {S_AddStringChar(interpreter, yytext[0]);}
 
-"//" {BEGIN COMMENT;}
-"#"  {BEGIN COMMENT;}
+<INITIAL>"//" {BEGIN COMMENT;}
+<INITIAL>"#"  {BEGIN COMMENT;}
 <COMMENT>\n {S_IncSrcLineNo(interpreter); BEGIN INITIAL;}
 <COMMENT>.  {}
 
-.          {}
+<INITIAL><<EOF>>   {return -1;}
+<INITIAL>.         {yyerror(interpreter, "Invalid lexical mark 0x%x.", yytext[0]); return ERROR_LEXICAL_MARK;}
 
 %%
 

@@ -3,14 +3,20 @@
 #include "ERR.h"
 #include "S_Interpreter.h"
 
-extern "C" void* yy_scan_buffer(char *base, unsigned int size);
+EXTERN_C void* yy_scan_bytes(char *base, unsigned int size);
+EXTERN_C int yyparse(struct S_Interpreter* interpreter);
 
 int CompileInternal(struct S_Interpreter* interpreter)
 {
-    DCHECK(interpreter->Flag & INTERPRETER_FLAG_HAVE_SOURCE);
-    yy_scan_buffer(interpreter->SourceFileContent, interpreter->SourceSize);
+    DCHECK((interpreter->Flag & INTERPRETER_FLAG_HAVE_SOURCE) != 0);
+	yy_scan_bytes(interpreter->SourceFileContent, interpreter->SourceSize);
 
-    return 0;
+    if (yyparse(interpreter) != 0)
+    {
+        return ERR_CODE_COMPILE_SOURCE_ERROR;
+    }
+
+    return ERR_CODE_SUCCESS;
 }
 
 struct S_Interpreter* S_NewInterpreter()
@@ -36,7 +42,8 @@ int S_DoCompileFile(struct S_Interpreter* interpreter, const char* filename)
         return ERR_CODE_FILE_NOT_FOUND;
     }
 
-    FILE* fp = fopen(filename, "r");
+	FILE* fp = 0;
+	fopen_s(&fp, filename, "rb");
     if (fp == 0)
     {
         return ERR_CODE_OPEN_FILE_FAILED;
@@ -65,7 +72,7 @@ int S_DoCompileFile(struct S_Interpreter* interpreter, const char* filename)
             free(interpreter->SourceFileContent);
         interpreter->SourceFileContent = 0;
     }
-    DCHECK(interpreter->SourceFileContent);
+    DCHECK(interpreter->SourceFileContent == 0);
 
     // Init everything.
     interpreter->Flag |= INTERPRETER_FLAG_HAVE_SOURCE;
@@ -87,3 +94,12 @@ int S_GetSrcLineNo(struct S_Interpreter* interpreter)
 	return interpreter->LineNo;
 }
 
+void yyerror(struct S_Interpreter* interpreter, const char* message, ...)
+{
+	static char buf[128];
+	va_list ap;
+	va_start(ap, message);
+	vsprintf_s(buf, message, ap);
+    ERR_Print(ERR_LEVEL_ERROR, "Line %d: %s\n", S_GetSrcLineNo(interpreter), buf);
+	va_end(ap);
+}
