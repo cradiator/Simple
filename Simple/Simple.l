@@ -72,11 +72,13 @@
 <STRING_CONTENT>\\n  {S_AddStringChar(interpreter, '\n');}
 <STRING_CONTENT>\\\\ {S_AddStringChar(interpreter, '\\');}
 <STRING_CONTENT>.    {S_AddStringChar(interpreter, yytext[0]);}
+<STRING_CONTENT><<EOF>> {yyerror(interpreter, "Unclosing quote"); return ERROR_LEXICAL_MARK;}
 
 <INITIAL>"//" {BEGIN COMMENT;}
 <INITIAL>"#"  {BEGIN COMMENT;}
 <COMMENT>\n {S_IncSrcLineNo(interpreter); BEGIN INITIAL;}
 <COMMENT>.  {}
+<COMMENT><<EOF>> {return -1;}
 
 <INITIAL><<EOF>>   {return -1;}
 <INITIAL>.         {yyerror(interpreter, "Invalid lexical mark 0x%x.", yytext[0]); return ERROR_LEXICAL_MARK;}

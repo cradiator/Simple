@@ -48,7 +48,7 @@
 %left  '*' '/'
 %right '^'
 
-%type<expression> expr cmp rel assign add_sub mul_div factor func_call term 
+%type<expression> expr cmp rel func_def assign add_sub mul_div factor func_call term 
 %type<statement> stat
 %type<statement_list> stat_list start
 %type<code_block> block
@@ -89,12 +89,15 @@ stat : expr ';' {$$ = (struct S_Statement*)S_CreateStatementExpression(interpret
      ;
 
 expr : assign {$$ = $1;}
-     | FUNCTION '(' param_list ')' block {$$ = (struct S_Expression*)S_CreateExpressionFunctionDefine(interpreter, $3, $5);}
      ;
 
-assign : assign '=' rel {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_ASSIGN, $1, $3);}
-       | rel {$$ = $1;}
+assign : assign '=' func_def {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_ASSIGN, $1, $3);}
+       | func_def {$$ = $1;}
        ;
+
+func_def : FUNCTION '(' param_list ')' block {$$ = (struct S_Expression*)S_CreateExpressionFunctionDefine(interpreter, $3, $5);}
+         | rel {$$ = $1;}
+         ;
 
 rel : rel REL cmp {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, $2, $1, $3);}
     | cmp {$$ = $1;}
