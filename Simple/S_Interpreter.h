@@ -4,6 +4,7 @@
 #include "MM.h"
 
 struct S_Statement_List;
+struct S_Context;
 
 enum 
 {
@@ -19,6 +20,10 @@ struct S_Interpreter
 	unsigned int Flag;
 
     struct S_Statement_List* StatementList;
+
+    // local variable live in context.
+    // GC-Collectable.
+    struct S_Context* Context;
 
     // used by S_DoCompileFile.
     char* SourceFileContent;

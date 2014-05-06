@@ -5,12 +5,22 @@
 #include "S_Interpreter.h"
 
 //// Expression /////
+void InitializeExpressionHeader(S_Interpreter* interpreter, S_Expression* exp, int type)
+{
+    exp->header.type = type;
+    exp->header.lineno = S_GetSrcLineNo(interpreter);
+}
+
 struct S_Expression_Nil* S_CreateExpressionNil(S_Interpreter* interpreter)
 {
     DCHECK(interpreter != 0);
 
-    static S_Expression_Nil e = {{EXPRESSION_TYPE_NIL}};
-    return &e;
+    struct S_Expression_Nil* e = 
+        (struct S_Expression_Nil*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                     sizeof(struct S_Expression_Nil));
+    DCHECK(e != 0);
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_NIL);
+    return e;
 }
 
 struct S_Expression_Integer* S_CreateExpressionInteger(S_Interpreter* interpreter, int value)
@@ -19,7 +29,7 @@ struct S_Expression_Integer* S_CreateExpressionInteger(S_Interpreter* interprete
         (struct S_Expression_Integer*)MM_AllocateStorage(interpreter->ParsingStorage,
                                                          sizeof(struct S_Expression_Integer));
     DCHECK(e != 0);
-    e->header.type = EXPRESSION_TYPE_INTEGER;
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_INTEGER);
     e->value = value;
     return e;
 }
@@ -31,7 +41,7 @@ struct S_Expression_Double* S_CreateExpressionDouble(S_Interpreter* interpreter,
                                                         sizeof(struct S_Expression_Double));
     DCHECK(e != 0);
 
-    e->header.type = EXPRESSION_TYPE_DOUBLE;
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_DOUBLE);
     e->value = value;
     return e;
 }
@@ -40,16 +50,24 @@ struct S_Expression_True* S_CreateExpressionTrue(S_Interpreter* interpreter)
 {
     DCHECK(interpreter != 0);
 
-    static S_Expression_True e = {{EXPRESSION_TYPE_TRUE}};
-    return &e;
+    struct S_Expression_True* e = 
+        (struct S_Expression_True*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                     sizeof(struct S_Expression_True));
+    DCHECK(e != 0);
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_TRUE);
+    return e;
 }
 
 struct S_Expression_False* S_CreateExpressionFalse(S_Interpreter* interpreter)
 {
     DCHECK(interpreter != 0);
 
-    static S_Expression_False e = {{EXPRESSION_TYPE_FALSE}};
-    return &e;
+    struct S_Expression_False* e = 
+        (struct S_Expression_False*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                     sizeof(struct S_Expression_False));
+    DCHECK(e != 0);
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_FALSE);
+    return e;
 }
 
 
@@ -62,7 +80,7 @@ struct S_Expression_String* S_CreateExpressionString(struct S_Interpreter* inter
                                                         sizeof(struct S_Expression_String));
     DCHECK(e != 0);
 
-    e->header.type = EXPRESSION_TYPE_STRING;
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_STRING);
     e->length = strlen(string);
     e->string = string;
 
@@ -78,7 +96,7 @@ struct S_Expression_Symbol* S_CreateExpressionSymbol(struct S_Interpreter* inter
                                                         sizeof(struct S_Expression_Symbol));
     DCHECK(e != 0);
 
-    e->header.type = EXPRESSION_TYPE_SYMBOL;
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_SYMBOL);
     e->symbol = symbol;
     return e;
 }
@@ -92,7 +110,7 @@ struct S_Expression_Negation* S_CreateExpressionNegation(struct S_Interpreter* i
                                                           sizeof(struct S_Expression_Negation));
 
     DCHECK(e != 0);
-    e->header.type = EXPRESSION_TYPE_NEGATION;
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_NEGATION);
     e->exp = exp;
 
     return e;
@@ -111,7 +129,7 @@ struct S_Expression_Function_Call* S_CreateExpressionFunctionCall(struct S_Inter
                                                                sizeof(struct S_Expression_Function_Call));
     DCHECK(e != 0);
 
-    e->header.type = EXPRESSION_TYPE_FUNCTION_CALL;
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_FUNCTION_CALL);
     e->fn = fn;
     e->param = param;
 
@@ -131,7 +149,7 @@ struct S_Expression_Function_Define* S_CreateExpressionFunctionDefine(struct S_I
                                                                  sizeof(struct S_Expression_Function_Define));
     DCHECK(e != 0);
 
-    e->header.type = EXPRESSION_TYPE_FUNCTION_DEFINE;
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_FUNCTION_DEFINE);
     e->param = param;
     e->code  = code;
     return e;
@@ -152,7 +170,7 @@ struct S_Expression_Op2* S_CreateExpressionOp2(struct S_Interpreter* interpreter
                                                      sizeof(struct S_Expression_Op2));
     DCHECK(e != 0);
 
-    e->header.type = EXPRESSION_TYPE_OP2;
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_OP2);
     e->op = op;
     e->exp1 = exp1;
     e->exp2 = exp2;

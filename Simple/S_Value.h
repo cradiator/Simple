@@ -69,10 +69,13 @@ struct S_Value_Integer* S_CreateValueInteger(struct S_Interpreter* interpreter, 
 
 struct S_Value_Double* S_CreateValueDouble(struct S_Interpreter* interpreter, double value);
 
-// This routine would take ownership of string.
-struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, char* string);
+struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, const char* string);
 
-// This routine would take ownership of string.
-struct S_Value_Symbol* S_CreateValueSymbol(struct S_Interpreter* interpreter, char* symbol);
+struct S_Value_Symbol* S_CreateValueSymbol(struct S_Interpreter* interpreter, const char* symbol);
 
 struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter, struct S_Expression_Function_Define* function);
+
+// All value returned by S_CreateValueXxx is uncollectable at very begining.
+// Call this routine to make it gc-collectable.
+void S_MarkValueCollectable(struct S_Interpreter* interpreter, struct S_Value* value);
+

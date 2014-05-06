@@ -60,7 +60,7 @@ struct S_Value_Double* S_CreateValueDouble(struct S_Interpreter* interpreter, do
     return v;
 }
 
-struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, char* string)
+struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, const char* string)
 {
     DCHECK(string != 0);
 
@@ -69,11 +69,11 @@ struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, ch
     DCHECK(v != 0);
 
     v->header.type = VALUE_TYPE_STRING;
-    v->string = string;
+    v->string = MM_CopyString(interpreter->RunningStorage, string);
     return v;
 }
 
-struct S_Value_Symbol* S_CreateValueSymbol(struct S_Interpreter* interpreter, char* symbol)
+struct S_Value_Symbol* S_CreateValueSymbol(struct S_Interpreter* interpreter, const char* symbol)
 {
     DCHECK(symbol != 0);
     struct S_Value_Symbol* v =
@@ -81,7 +81,7 @@ struct S_Value_Symbol* S_CreateValueSymbol(struct S_Interpreter* interpreter, ch
     DCHECK(v != 0);
 
     v->header.type = VALUE_TYPE_SYMBOL;
-    v->symbol = symbol;
+    v->symbol = MM_CopyString(interpreter->RunningStorage, symbol);
     return v;
 }
 
@@ -98,3 +98,20 @@ struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter
     return v;
 }
 
+void S_MarkValueCollectable(struct S_Interpreter* interpreter, struct S_Value* value)
+{
+    DCHECK(value != 0);
+
+    if (value->header.type == VALUE_TYPE_STRING)
+    {
+        struct S_Value_String* s = (struct S_Value_String*)value;
+        MM_MarkGCMemoryCollectable(interpreter->RunningStorage, s->string);
+    }
+    else if (value->header.type == VALUE_TYPE_SYMBOL)
+    {
+        struct S_Value_Symbol* s = (struct S_Value_Symbol*)value;
+        MM_MarkGCMemoryCollectable(interpreter->RunningStorage, s->symbol);
+    }
+
+    MM_MarkGCMemoryCollectable(interpreter->RunningStorage, value);
+}

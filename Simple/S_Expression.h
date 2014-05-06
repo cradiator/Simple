@@ -45,6 +45,7 @@ enum {
 
 struct S_Expression_Header {
     int type;
+    int lineno;
 };
 
 struct S_Expression {

@@ -12,6 +12,7 @@
     <ClCompile Include="simple.tab.c" />
     <ClCompile Include="S_Value.cpp" />
     <ClCompile Include="S_Eval.cpp" />
+    <ClCompile Include="S_Context.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
@@ -24,5 +25,6 @@
     <ClInclude Include="simple.tab.h" />
     <ClInclude Include="S_Value.h" />
     <ClInclude Include="S_Eval.h" />
+    <ClInclude Include="S_Context.h" />
   </ItemGroup>
 </Project>
