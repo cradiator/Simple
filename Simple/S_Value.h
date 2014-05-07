@@ -14,6 +14,18 @@ enum {
     VALUE_TYPE_FUNCTION,
 };
 
+__declspec(selectany) 
+const char* VALUE_NAME[] = {
+    "nil",
+    "true",
+    "false",
+    "integer",
+    "double",
+    "string",
+    "symbol",
+    "function"
+};
+
 struct S_Value_Header {
     int type;
 };
