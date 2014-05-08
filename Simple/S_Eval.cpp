@@ -120,6 +120,77 @@ __ERROR_EXIT:
     return 0;
 }
 
+struct S_Value* EvalSubMulDiv(struct S_Interpreter* interpreter, int lineno, struct S_Value* left, struct S_Value* right, int op)
+{
+    DCHECK(op == OP2_SUB || op == OP2_MUL || op == OP2_DIV);
+
+    if (left->header.type != VALUE_TYPE_INTEGER && left->header.type != VALUE_TYPE_DOUBLE)
+    {
+        goto __ERROR_EXIT;
+    }
+
+    if (right->header.type != VALUE_TYPE_INTEGER && right->header.type != VALUE_TYPE_DOUBLE)
+    {
+        goto __ERROR_EXIT;
+    }
+
+    struct S_Value* returned_value = 0;
+    if (left->header.type == VALUE_TYPE_INTEGER && right->header.type == VALUE_TYPE_INTEGER)
+    {
+        struct S_Value_Integer* left_integer  = (struct S_Value_Integer*)left;
+        struct S_Value_Integer* right_integer = (struct S_Value_Integer*)right;
+
+        if (right_integer->value == 0 && op == OP2_DIV)
+        {
+            goto __ERROR_DIV_BY_ZERO;
+        }
+
+        if (op == OP2_SUB)
+            returned_value = (struct S_Value*)S_CreateValueInteger(interpreter, left_integer->value - right_integer->value);
+        else if (op == OP2_MUL)
+            returned_value = (struct S_Value*)S_CreateValueInteger(interpreter, left_integer->value * right_integer->value);
+        else if (op == OP2_DIV)
+            returned_value = (struct S_Value*)S_CreateValueInteger(interpreter, left_integer->value / right_integer->value);
+    }
+    else
+    {
+        double left_double  = left->header.type == VALUE_TYPE_INTEGER ? 
+                              (double)(((struct S_Value_Integer*)left)->value) :
+                              ((struct S_Value_Double*)left)->value;
+        double right_double  = right->header.type == VALUE_TYPE_INTEGER ? 
+                              (double)(((struct S_Value_Integer*)right)->value) :
+                              ((struct S_Value_Double*)right)->value;
+
+        if (right_double == 0 && op == OP2_DIV)
+        {
+            goto __ERROR_DIV_BY_ZERO;
+        }
+
+        if (op == OP2_SUB)
+            returned_value = (struct S_Value*)S_CreateValueInteger(interpreter, left_double - right_double);
+        else if (op == OP2_MUL)
+            returned_value = (struct S_Value*)S_CreateValueInteger(interpreter, left_double * right_double);
+        else if (op == OP2_DIV)
+            returned_value = (struct S_Value*)S_CreateValueInteger(interpreter, left_double / right_double);
+    }
+
+    return returned_value;
+
+__ERROR_DIV_BY_ZERO:
+    ERR_Print(ERR_LEVEL_ERROR,
+              "Line %d: divided by zero.",
+              lineno);
+    return 0;
+
+__ERROR_EXIT:
+    ERR_Print(ERR_LEVEL_ERROR, 
+              "Lind %d: %s can not sub %s.", 
+              lineno, 
+              VALUE_NAME[left->header.type],
+              VALUE_NAME[right->header.type]);
+    return 0;
+}
+
 struct S_Value* S_Eval_Expression_Op2(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
 {
     S_Value* left  = 0;
@@ -139,6 +210,12 @@ struct S_Value* S_Eval_Expression_Op2(struct S_Interpreter* interpreter, struct 
     {
         case OP2_ADD:
             returned_value = EvalAdd(interpreter, exp->header.lineno, left, right);
+            break;
+
+        case OP2_SUB:
+        case OP2_MUL:
+        case OP2_DIV:
+            returned_value = EvalSubMulDiv(interpreter, exp->header.lineno, left, right, exp->op);
             break;
 
         default:
