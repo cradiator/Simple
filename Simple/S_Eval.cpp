@@ -52,6 +52,11 @@ struct S_Value* S_Eval_Expression_String(struct S_Interpreter* interpreter, stru
 	return (struct S_Value*)S_CreateValueString(interpreter, exp->string);
 }
 
+struct S_Value* S_Eval_Expression_Function_Define(struct S_Interpreter* interpreter, struct S_Expression_Function_Define* exp)
+{
+    return (S_Value*)S_CreateValueFunction(interpreter, exp);
+}
+
 struct S_Value* S_Eval_Expression_Symbol(struct S_Interpreter* interpreter, struct S_Expression_Symbol* exp)
 {
     int only_local = S_ContextIsGlobalVar(interpreter, exp->symbol) == 0 ? 1 : 0;
@@ -570,6 +575,36 @@ __EXIT:
     return 0;
 }
 
+struct S_Value* EvalAssign(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
+{
+    DCHECK(exp->op == OP2_ASSIGN);
+
+    if (exp->exp1.header.type != EXPRESSION_TYPE_SYMBOL)
+    {
+        ERR_Print(ERR_LEVEL_ERROR,
+                  "Line %d: %s is not an symbol, can not be assigned.",
+                  exp->header.lineno,
+                  VALUE_NAME[exp->exp1.header.type]);
+    }
+
+    // Eval right hands.
+    struct S_Expression_Symbol* left_symbol = (struct S_Expression_Symbol*)exp->exp1;
+    struct S_Value* right_value = S_Eval_Expression(interpreter, exp->exp2);
+    if (right_value == 0)
+        return 0;
+
+    // Create or Get context variables.
+    bool is_symbol_global = S_ContextIsGlobalVar(interpreter, left_symbol->symbol);
+    struct S_Local_Variables* variables = S_ContextFindVariable(interpreter, left_symbol->symbol, !is_symbol_global, true);
+    DCHECK(variables != 0);
+
+    // Assign the value.
+    variables->value = right_value;
+    S_MarkValueCollectable(interpreter, right_value);
+
+    return right_value;
+}
+
 struct S_Value* S_Eval_Expression_Op2(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
 {
     // In exp1 && exp2, we should not evaluate exp2 unless exp1 is true
@@ -578,6 +613,12 @@ struct S_Value* S_Eval_Expression_Op2(struct S_Interpreter* interpreter, struct 
     if (exp->op == OP2_AND || exp->op == OP2_OR)
     {
         return EvalRel(interpreter, exp);
+    }
+
+    // Assign operation is different from other two hands op.
+    if (exp->op == OP2_ASSIGN)
+    {
+        return EvalAssign(interpreter, exp);
     }
 
     S_Value* left  = 0;
@@ -690,7 +731,21 @@ struct S_Value* S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Ex
     case EXPRESSION_TYPE_OP2:
         returned_value = S_Eval_Expression_Op2(interpreter, (struct S_Expression_Op2*)exp);
         break;
+
+    case EXPRESSION_TYPE_FUNCTION_DEFINE:
+        returned_value = S_Eval_Expression_Function_Define(interpreter, (struct S_Expression_FUnction_Define*)exp);
+        break;
+
+    default:
+        ERR_Print(ERR_LEVEL_ERROR,
+                  "Line %d: expression type %d is unsupport",
+                  exp->header.lineno,
+                  exp->header.type);
+        DCHECK(false);
+        break;
+
     }
-    return NULL;
+
+    return returned_value;
 }
 

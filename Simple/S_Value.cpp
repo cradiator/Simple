@@ -93,7 +93,22 @@ struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter
     DCHECK(v != 0);
 
     v->header.type = VALUE_TYPE_FUNCTION;
+    v->type = SCRIPT_FUNCTION;
     v->function = function;
+
+    return v;
+}
+
+struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* interpreter, S_NativeFunctionProto function)
+{
+    DCHECK(function != 0);
+    struct S_Value_Function* v =
+        (struct S_Value_Function*)MM_Malloc(interpreter->RunningStorage, sizeof(S_Value_Function));
+    DCHECK(v != 0);
+
+    v->header.type = VALUE_TYPE_FUNCTION;
+    v->type = NATIVE_FUNCTION;
+    v->native_ptr = function;
 
     return v;
 }

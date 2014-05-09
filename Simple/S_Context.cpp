@@ -43,7 +43,7 @@ void S_ContextPop(struct S_Interpreter* interpreter)
     // Need not release context, it would be collected by gc an the end.
 }
 
-struct S_Local_Variables* GetVariable(struct S_Interpreter* interpreter, const char* name, int only_local)
+struct S_Local_Variables* GetVariable(struct S_Interpreter* interpreter, const char* name, bool only_local)
 {
     DCHECK(interpreter != 0);
     DCHECK(interpreter->Context != 0);
@@ -71,7 +71,7 @@ struct S_Local_Variables* GetVariable(struct S_Interpreter* interpreter, const c
         }
 
         // not found and only search local context.
-        if (only_local != 0)
+        if (only_local)
         {
             break;
         }
@@ -83,7 +83,7 @@ struct S_Local_Variables* GetVariable(struct S_Interpreter* interpreter, const c
     return var_founded;
 }
 
-struct S_Local_Variables* S_ContextFindVariable(struct S_Interpreter* interpreter, const char* name, int only_local, int create_if_not_found)
+struct S_Local_Variables* S_ContextFindVariable(struct S_Interpreter* interpreter, const char* name, bool only_local, int create_if_not_found)
 {
     struct S_Local_Variables* var = GetVariable(interpreter, name, only_local);
     if (var != 0)
@@ -91,7 +91,7 @@ struct S_Local_Variables* S_ContextFindVariable(struct S_Interpreter* interprete
         return var;
     }
 
-    if (create_if_not_found == 0)
+    if (!create_if_not_found)
     {
         return 0;
     }
@@ -126,7 +126,7 @@ void S_ContextMarkVarGlobal(struct S_Interpreter* interpreter, char* name)
     MM_MarkGCMemoryCollectable(interpreter->RunningStorage, global_name);
 }
 
-int S_ContextIsGlobalVar(struct S_Interpreter* interpreter, const char* name)
+bool S_ContextIsGlobalVar(struct S_Interpreter* interpreter, const char* name)
 {
     DCHECK(interpreter != 0);
     DCHECK(interpreter->Context != 0);
@@ -138,12 +138,12 @@ int S_ContextIsGlobalVar(struct S_Interpreter* interpreter, const char* name)
     {
         if (strcmp(global_name->name, name) == 0)
         {
-            return 1;
+            return true;
         }
 
         global_name = global_name->next;
     }
 
-    return 0;
+    return false;
 }
 

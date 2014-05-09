@@ -92,12 +92,19 @@ expr : assign {$$ = $1;}
      ;
 
 assign : assign '=' func_def {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_ASSIGN, $1, $3);}
+       | assign '=' rel {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_ASSIGN, $1, $3);}
        | func_def {$$ = $1;}
+       | rel {$$ = $1;}
        ;
 
 func_def : FUNCTION '(' param_list ')' block {$$ = (struct S_Expression*)S_CreateExpressionFunctionDefine(interpreter, $3, $5);}
-         | rel {$$ = $1;}
          ;
+
+
+func_call : term '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
+          | func_def '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
+          | func_call '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
+          ;
 
 rel : rel REL cmp {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, $2, $1, $3);}
     | cmp {$$ = $1;}
@@ -117,13 +124,11 @@ mul_div : mul_div '*' factor {$$ = (struct S_Expression*)S_CreateExpressionOp2(i
         | factor {$$ = $1;}
         ;
 
-factor : factor '^' func_call {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_FACTOR, $1, $3);}
+factor : factor '^' term {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_FACTOR, $1, $3);}
+       | factor '^' func_call {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_FACTOR, $1, $3);}
        | func_call {$$ = $1;}
+       | term {$$ = $1;}
        ;
-
-func_call : term '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
-          | term {$$ = $1;}
-          ;
 
 term : INTEGER {$$ = (struct S_Expression*)S_CreateExpressionInteger(interpreter, $1);}
      | DOUBLE  {$$ = (struct S_Expression*)S_CreateExpressionDouble(interpreter, $1);}

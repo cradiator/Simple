@@ -66,9 +66,20 @@ struct S_Value_Symbol {
     char* symbol;
 };
 
+enum {
+    SCRIPT_FUNCTION,
+    NATIVE_FUNCTION,
+};
+
+typedef S_Value* (S_NativeFunctionProto*)(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count);
+
 struct S_Value_Function {
     struct S_Value_Header header;
-    struct S_Expression_Function_Define* function;
+    int type;
+    union {
+        S_NativeFunctionProto native_ptr;
+        struct S_Expression_Function_Define* function;
+    };
 };
 
 struct S_Value_Nil* S_CreateValueNil(struct S_Interpreter* interpreter);
@@ -86,6 +97,8 @@ struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, co
 struct S_Value_Symbol* S_CreateValueSymbol(struct S_Interpreter* interpreter, const char* symbol);
 
 struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter, struct S_Expression_Function_Define* function);
+
+struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* interpreter, S_NativeFunctionProto function);
 
 // All value returned by S_CreateValueXxx is uncollectable at very begining.
 // Call this routine to make it gc-collectable.
