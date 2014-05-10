@@ -59,8 +59,8 @@ struct S_Value* S_Eval_Expression_Function_Define(struct S_Interpreter* interpre
 
 struct S_Value* S_Eval_Expression_Symbol(struct S_Interpreter* interpreter, struct S_Expression_Symbol* exp)
 {
-    int only_local = S_ContextIsGlobalVar(interpreter, exp->symbol) == 0 ? 1 : 0;
-    S_Local_Variables* var = S_ContextFindVariable(interpreter, exp->symbol, only_local, 0);
+    bool only_local = !S_ContextIsGlobalVar(interpreter, exp->symbol);
+    S_Local_Variables* var = S_ContextFindVariable(interpreter, exp->symbol, only_local, false);
 	if (var != 0 && var->value != 0)
     {
         return var->value;
@@ -579,12 +579,12 @@ struct S_Value* EvalAssign(struct S_Interpreter* interpreter, struct S_Expressio
 {
     DCHECK(exp->op == OP2_ASSIGN);
 
-    if (exp->exp1.header.type != EXPRESSION_TYPE_SYMBOL)
+    if (exp->exp1->header.type != EXPRESSION_TYPE_SYMBOL)
     {
         ERR_Print(ERR_LEVEL_ERROR,
                   "Line %d: %s is not an symbol, can not be assigned.",
                   exp->header.lineno,
-                  VALUE_NAME[exp->exp1.header.type]);
+                  VALUE_NAME[exp->exp1->header.type]);
     }
 
     // Eval right hands.
@@ -733,7 +733,7 @@ struct S_Value* S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Ex
         break;
 
     case EXPRESSION_TYPE_FUNCTION_DEFINE:
-        returned_value = S_Eval_Expression_Function_Define(interpreter, (struct S_Expression_FUnction_Define*)exp);
+        returned_value = S_Eval_Expression_Function_Define(interpreter, (struct S_Expression_Function_Define*)exp);
         break;
 
     default:

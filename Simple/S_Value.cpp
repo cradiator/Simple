@@ -94,7 +94,7 @@ struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter
 
     v->header.type = VALUE_TYPE_FUNCTION;
     v->type = SCRIPT_FUNCTION;
-    v->function = function;
+    v->u.function = function;
 
     return v;
 }
@@ -108,7 +108,7 @@ struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* inter
 
     v->header.type = VALUE_TYPE_FUNCTION;
     v->type = NATIVE_FUNCTION;
-    v->native_ptr = function;
+    v->u.native_ptr = function;
 
     return v;
 }

@@ -83,7 +83,7 @@ struct S_Local_Variables* GetVariable(struct S_Interpreter* interpreter, const c
     return var_founded;
 }
 
-struct S_Local_Variables* S_ContextFindVariable(struct S_Interpreter* interpreter, const char* name, bool only_local, int create_if_not_found)
+struct S_Local_Variables* S_ContextFindVariable(struct S_Interpreter* interpreter, const char* name, bool only_local, bool create_if_not_found)
 {
     struct S_Local_Variables* var = GetVariable(interpreter, name, only_local);
     if (var != 0)
