@@ -85,16 +85,16 @@ struct S_Value_Symbol* S_CreateValueSymbol(struct S_Interpreter* interpreter, co
     return v;
 }
 
-struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter, struct S_Expression_Function_Define* function)
+struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter, struct S_Parameter_List* param_list, struct S_Code_Block* code_block)
 {
-    DCHECK(function != 0);
     struct S_Value_Function* v =
         (struct S_Value_Function*)MM_Malloc(interpreter->RunningStorage, sizeof(S_Value_Function));
     DCHECK(v != 0);
 
     v->header.type = VALUE_TYPE_FUNCTION;
     v->type = SCRIPT_FUNCTION;
-    v->u.function = function;
+    v->u.script.param_list = param_list;
+    v->u.script.code_block = code_block;
 
     return v;
 }
@@ -108,7 +108,7 @@ struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* inter
 
     v->header.type = VALUE_TYPE_FUNCTION;
     v->type = NATIVE_FUNCTION;
-    v->u.native_ptr = function;
+    v->u.native = function;
 
     return v;
 }

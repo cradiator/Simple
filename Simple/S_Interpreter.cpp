@@ -2,6 +2,7 @@
 #include "DBG.h"
 #include "ERR.h"
 #include "S_Interpreter.h"
+#include "S_Value.h"
 
 EXTERN_C void* yy_scan_bytes(char *base, unsigned int size);
 EXTERN_C int yyparse(struct S_Interpreter* interpreter);
@@ -102,4 +103,42 @@ void yyerror(struct S_Interpreter* interpreter, const char* message, ...)
 	vsprintf_s(buf, message, ap);
     ERR_Print(ERR_LEVEL_ERROR, "Line %d: %s\n", S_GetSrcLineNo(interpreter), buf);
 	va_end(ap);
+}
+
+void S_SetReturnValue(struct S_Interpreter* interpreter, S_Value* value)
+{
+    DCHECK((interpreter->Flag & INTERPRETER_FLAG_HAVE_RETURN) == 0);
+    DCHECK(value != 0);
+
+    interpreter->ReturnValue = value;
+    interpreter->Flag |= INTERPRETER_FLAG_HAVE_RETURN;
+    S_MarkValueCollectable(interpreter, value);
+}
+
+struct S_Value* S_GetReturnValue(struct S_Interpreter* interpreter)
+{
+    DCHECK((interpreter->Flag & INTERPRETER_FLAG_HAVE_RETURN) != 0);
+
+    if ((interpreter->Flag & INTERPRETER_FLAG_HAVE_RETURN) != 0)
+        return 0;
+
+    return interpreter->ReturnValue;
+}
+
+void S_ClearReturnValue(struct S_Interpreter* interpreter)
+{
+    DCHECK((interpreter->Flag & INTERPRETER_FLAG_HAVE_RETURN) != 0);
+    interpreter->ReturnValue = 0;
+    interpreter->Flag &= ~INTERPRETER_FLAG_HAVE_RETURN;
+}
+
+bool S_IsHaveReturnValue(struct S_Interpreter* interpreter)
+{
+    if ((interpreter->Flag & INTERPRETER_FLAG_HAVE_RETURN) != 0)
+    {
+        DCHECK(interpreter->ReturnValue != 0);
+        return true;
+    }
+
+    return false;
 }

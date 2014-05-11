@@ -110,7 +110,7 @@ struct S_Local_Variables* S_ContextFindVariable(struct S_Interpreter* interprete
 	return var;
 }
 
-void S_ContextMarkVarGlobal(struct S_Interpreter* interpreter, char* name)
+void S_ContextMarkVarGlobal(struct S_Interpreter* interpreter, const char* name)
 {
     DCHECK(interpreter != 0);
     DCHECK(interpreter->Context != 0);
