@@ -112,7 +112,6 @@ void S_SetReturnValue(struct S_Interpreter* interpreter, S_Value* value)
 
     interpreter->ReturnValue = value;
     interpreter->Flag |= INTERPRETER_FLAG_HAVE_RETURN;
-    S_MarkValueCollectable(interpreter, value);
 }
 
 struct S_Value* S_GetReturnValue(struct S_Interpreter* interpreter)

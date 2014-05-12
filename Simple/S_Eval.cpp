@@ -682,12 +682,149 @@ __EXIT:
 
 struct S_Value* S_Eval_Function_Call(struct S_Interpreter* interpreter, struct S_Expression_Function_Call* exp)
 {
-    /*
+    // Get function pointer.
     struct S_Value* function_value = S_Eval_Expression(interpreter, exp->fn);
-    if (function_value == 0 || function_value->)
-    */
+    if (function_value == 0)
+        return 0;
 
-    // TODO: need implement statement evaluation first.
+    if (function_value->header.type != VALUE_TYPE_FUNCTION)
+    {
+        ERR_Print(ERR_LEVEL_ERROR,
+                  "Line %d: %s can not be called as a function.",
+                  exp->header.lineno,
+                  VALUE_NAME[function_value->header.type]);
+        S_MarkValueCollectable(interpreter, function_value);
+        return 0;
+    }
+
+    // Evaluate the function body.
+    struct S_Value* returned_value = 0;
+    struct S_Value_Function* function = (struct S_Value_Function*)function_value;
+    S_ContextPush(interpreter);
+    if (function->type == NATIVE_FUNCTION)
+    {
+        struct S_Expression_List* current_exp_list = exp->param;
+        S_NativeFunctionProto native_ptr = function->u.native;
+
+        // empty parameter list
+        if (current_exp_list == 0 || current_exp_list->exp == 0)
+        {
+            returned_value = native_ptr(interpreter, 0, 0);
+            goto __EXIT;
+        }
+
+        // non-empty paramter list.
+        // count paramter
+        int exp_count = 0;
+        while (current_exp_list != 0)
+        {
+            exp_count++;
+            current_exp_list = current_exp_list->next;
+        }
+
+        // create value array and evaluate paramter expression.
+        struct S_Value** value_array = (struct S_Value**)malloc(sizeof(struct S_Value*) * exp_count);
+        current_exp_list = exp->param;
+        int current_param_index = 0;
+        while (current_exp_list != 0)
+        {
+            struct S_Value* val = S_Eval_Expression(interpreter, current_exp_list->exp);
+            if (val == 0)
+            {
+                // TODO: val memory leaked.
+                goto __EXIT;
+            }
+
+            value_array[current_param_index] = val;
+            current_exp_list = current_exp_list->next;
+            current_param_index++;
+        }
+
+        // Call native function.
+        returned_value = native_ptr(interpreter, value_array, exp_count);
+    }
+    else if (function->type == SCRIPT_FUNCTION)
+    {
+        // Prepare paremeter.
+        struct S_Expression_List* current_exp_list = exp->param;
+        struct S_Parameter_List* current_param_list = function->u.script.param_list;
+
+        // count parameter and expression.
+        int exp_count = 0;
+        while (current_exp_list != 0)
+        {
+            exp_count++;
+            current_exp_list = current_exp_list->next;
+        }
+
+        int param_count = 0;
+        while (current_param_list != 0)
+        {
+            param_count++;
+            current_param_list = current_param_list->next;
+        }
+
+        if (exp_count != param_count)
+            goto __EXIT_PARAM_MISMATCH;
+
+        // check empty parameter and expression.
+        current_exp_list = exp->param;
+        current_param_list = function->u.script.param_list;
+        if (current_exp_list->exp == 0)
+        {
+            if (current_param_list->symbol != 0)
+                goto __EXIT_PARAM_MISMATCH;
+
+            current_exp_list = 0;
+            current_param_list = 0;
+        }
+
+        // eval expression and assign local parameter.
+        while (current_exp_list != 0)
+        {
+            S_Value* exp_val = S_Eval_Expression(interpreter, current_exp_list->exp);
+            if (exp_val == 0)
+                goto __EXIT;
+
+            struct S_Local_Variables* variable = S_ContextFindVariable(interpreter, 
+                                                                       current_param_list->symbol->symbol, 
+                                                                       true,    // only local
+                                                                       true);   // create if not found.
+            variable->value = exp_val;
+            S_MarkValueCollectable(interpreter, exp_val);
+
+            current_exp_list   = current_exp_list->next;
+            current_param_list = current_param_list->next;
+        }
+
+        // eval function body.
+        bool success = S_Eval_Code_Block(interpreter, function->u.script.code_block);
+        if (success == true)
+        {
+            if (S_IsHaveReturnValue(interpreter))
+                returned_value = S_GetReturnValue(interpreter);
+            else
+                returned_value = (struct S_Value*)S_CreateValueNil(interpreter);
+        }
+
+        S_ClearReturnValue(interpreter);
+    }
+
+__EXIT:
+    S_ContextPop(interpreter);
+    if (function_value != 0)
+        S_MarkValueCollectable(interpreter, function_value);
+    return returned_value;
+
+__EXIT_PARAM_MISMATCH:
+    ERR_Print(ERR_LEVEL_ERROR,
+              "Line %d: function parameter mismatch.",
+              exp->header.lineno);
+    S_ContextPop(interpreter);
+    if (returned_value != 0)
+        S_MarkValueCollectable(interpreter, returned_value);
+    if (function_value != 0)
+        S_MarkValueCollectable(interpreter, function_value);
     return 0;
 }
 

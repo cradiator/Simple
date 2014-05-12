@@ -50,7 +50,6 @@ struct S_Interpreter* S_NewInterpreter();
 int S_DoCompileFile(struct S_Interpreter* interpreter, const char* filename);
 
 // Used by S_Eval_Statement_Return.
-// This routine would set value collectable.
 void S_SetReturnValue(struct S_Interpreter* interpreter, struct S_Value* value);
 
 // Used by S_Eval_Expression_Function.
