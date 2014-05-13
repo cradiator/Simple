@@ -367,14 +367,14 @@ struct S_Value* EvalCmp(struct S_Interpreter* interpreter, int lineno, struct S_
 
         struct S_Value_String* left_string  = (struct S_Value_String*)left;
         struct S_Value_String* right_string = (struct S_Value_String*)right;
-        int cmp_result = strcmp(left_string->string, right_string->string);
+        cmp_result = strcmp(left_string->string, right_string->string);
     }
     else if (left->header.type == VALUE_TYPE_INTEGER && right->header.type == VALUE_TYPE_INTEGER)
     {
         struct S_Value_Integer* left_integer  = (struct S_Value_Integer*)left;
         struct S_Value_Integer* right_integer = (struct S_Value_Integer*)right;
 
-        int cmp_result = left_integer->value - right_integer->value;
+        cmp_result = left_integer->value - right_integer->value;
     }
     // number compare
     else if (left->header.type == VALUE_TYPE_DOUBLE || right->header.type == VALUE_TYPE_DOUBLE)
@@ -680,10 +680,35 @@ __EXIT:
     return returned_value;
 }
 
-struct S_Value* S_Eval_Function_Call(struct S_Interpreter* interpreter, struct S_Expression_Function_Call* exp)
+struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S_Expression_Function_Call* exp)
 {
     // Get function pointer.
-    struct S_Value* function_value = S_Eval_Expression(interpreter, exp->fn);
+    struct S_Value* function_value = 0;
+    if (exp->fn->header.type == EXPRESSION_TYPE_SYMBOL)
+    {
+        struct S_Expression_Symbol* exp_symbol = (struct S_Expression_Symbol*)exp->fn;
+        // function call using symbol always search global scope.
+        struct S_Local_Variables* variable = S_ContextFindVariable(interpreter, 
+                                                                   exp_symbol->symbol,
+                                                                   false,   // search global
+                                                                   false);  // not create
+        if (variable != 0)
+        {
+            function_value = variable->value;
+        }
+        else
+        {
+            ERR_Print(ERR_LEVEL_ERROR,
+                      "Line %d: symbol %s not found",
+                      exp->fn->header.lineno,
+                      exp_symbol->symbol);
+        }
+    }
+    else
+    {
+        function_value = S_Eval_Expression(interpreter, exp->fn);
+    }
+
     if (function_value == 0)
         return 0;
 
@@ -700,7 +725,8 @@ struct S_Value* S_Eval_Function_Call(struct S_Interpreter* interpreter, struct S
     // Evaluate the function body.
     struct S_Value* returned_value = 0;
     struct S_Value_Function* function = (struct S_Value_Function*)function_value;
-    S_ContextPush(interpreter);
+    struct S_Value** value_array = 0;
+    bool has_pushed_contenxt = false;
     if (function->type == NATIVE_FUNCTION)
     {
         struct S_Expression_List* current_exp_list = exp->param;
@@ -709,6 +735,8 @@ struct S_Value* S_Eval_Function_Call(struct S_Interpreter* interpreter, struct S
         // empty parameter list
         if (current_exp_list == 0 || current_exp_list->exp == 0)
         {
+            S_ContextPush(interpreter);
+            has_pushed_contenxt = true;
             returned_value = native_ptr(interpreter, 0, 0);
             goto __EXIT;
         }
@@ -723,7 +751,7 @@ struct S_Value* S_Eval_Function_Call(struct S_Interpreter* interpreter, struct S
         }
 
         // create value array and evaluate paramter expression.
-        struct S_Value** value_array = (struct S_Value**)malloc(sizeof(struct S_Value*) * exp_count);
+        value_array = (struct S_Value**)malloc(sizeof(struct S_Value*) * exp_count);
         current_exp_list = exp->param;
         int current_param_index = 0;
         while (current_exp_list != 0)
@@ -741,6 +769,8 @@ struct S_Value* S_Eval_Function_Call(struct S_Interpreter* interpreter, struct S
         }
 
         // Call native function.
+        S_ContextPush(interpreter);
+        has_pushed_contenxt = true;
         returned_value = native_ptr(interpreter, value_array, exp_count);
     }
     else if (function->type == SCRIPT_FUNCTION)
@@ -780,20 +810,32 @@ struct S_Value* S_Eval_Function_Call(struct S_Interpreter* interpreter, struct S
         }
 
         // eval expression and assign local parameter.
+        value_array = (struct S_Value**)malloc(sizeof(struct Value*) * param_count);
+        int current_index = 0;
         while (current_exp_list != 0)
         {
             S_Value* exp_val = S_Eval_Expression(interpreter, current_exp_list->exp);
             if (exp_val == 0)
-                goto __EXIT;
-
-            struct S_Local_Variables* variable = S_ContextFindVariable(interpreter, 
-                                                                       current_param_list->symbol->symbol, 
-                                                                       true,    // only local
-                                                                       true);   // create if not found.
-            variable->value = exp_val;
-            S_MarkValueCollectable(interpreter, exp_val);
+                goto __EXIT;    // TODO: exp_val leaked.
+            value_array[current_index] = exp_val;
+            current_index++;
 
             current_exp_list   = current_exp_list->next;
+        }
+        
+        // create local parameter.
+        S_ContextPush(interpreter);
+        has_pushed_contenxt = true;
+        current_param_list = function->u.script.param_list;
+        current_index = 0;
+        while (current_param_list != 0)
+        {
+            struct S_Local_Variables* variable = S_ContextFindVariable(interpreter,
+                current_param_list->symbol->symbol,
+                true,    // only local
+                true);   // create if not found.
+            variable->value = value_array[current_index];
+            S_MarkValueCollectable(interpreter, variable->value);
             current_param_list = current_param_list->next;
         }
 
@@ -809,22 +851,32 @@ struct S_Value* S_Eval_Function_Call(struct S_Interpreter* interpreter, struct S
 
         S_ClearReturnValue(interpreter);
     }
+    else
+    {
+        DCHECK(false);
+    }
 
 __EXIT:
-    S_ContextPop(interpreter);
+    if (has_pushed_contenxt)
+        S_ContextPop(interpreter);
     if (function_value != 0)
         S_MarkValueCollectable(interpreter, function_value);
+    if (value_array != 0)
+        free(value_array);
     return returned_value;
 
 __EXIT_PARAM_MISMATCH:
     ERR_Print(ERR_LEVEL_ERROR,
               "Line %d: function parameter mismatch.",
               exp->header.lineno);
-    S_ContextPop(interpreter);
+    if (has_pushed_contenxt)
+        S_ContextPop(interpreter);
     if (returned_value != 0)
         S_MarkValueCollectable(interpreter, returned_value);
     if (function_value != 0)
         S_MarkValueCollectable(interpreter, function_value);
+    if (value_array != 0)
+        free(value_array);
     return 0;
 }
 
@@ -875,6 +927,10 @@ struct S_Value* S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Ex
 
     case EXPRESSION_TYPE_FUNCTION_DEFINE:
         returned_value = S_Eval_Expression_Function_Define(interpreter, (struct S_Expression_Function_Define*)exp);
+        break;
+
+    case EXPRESSION_TYPE_FUNCTION_CALL:
+        returned_value = S_Eval_Expression_Function_Call(interpreter, (struct S_Expression_Function_Call*)exp);
         break;
 
     default:
@@ -1088,6 +1144,8 @@ bool S_Eval_Statement_List(struct S_Interpreter* interpreter, struct S_Statement
             DCHECK(stat->header.type == STATEMENT_TYPE_RETURN);
             break;
         }
+
+        current_node = current_node->next;
     }
 
     return success;

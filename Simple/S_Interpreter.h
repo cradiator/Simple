@@ -2,6 +2,8 @@
 
 #include "Common.h"
 #include "MM.h"
+#include "S_Expression.h"
+#include "S_Value.h"
 
 struct S_Statement_List;
 struct S_Context;
@@ -48,6 +50,15 @@ struct S_Interpreter* S_NewInterpreter();
 // Comple an source file.
 // return 0 if success, else error code.
 int S_DoCompileFile(struct S_Interpreter* interpreter, const char* filename);
+
+// Run the compiled script.
+// Call this method after S_DoCompileFile.
+int S_Run(struct S_Interpreter* interpreter);
+
+#ifdef __cplusplus
+// Create an native function.
+bool S_AddNativeFunction(struct S_Interpreter* interpreter, const char* name, S_NativeFunctionProto native_function);
+#endif
 
 // Used by S_Eval_Statement_Return.
 void S_SetReturnValue(struct S_Interpreter* interpreter, struct S_Value* value);

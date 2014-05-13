@@ -6,6 +6,8 @@ enum {
     ERR_CODE_OPEN_FILE_FAILED,
     ERR_CODE_INVALID_FILE_SIZE,
     ERR_CODE_COMPILE_SOURCE_ERROR,
+    ERR_CODE_NO_SCRIPT,
+    ERR_CODE_RUNTIME_ERROR,
 };
 
 __declspec(selectany)
@@ -15,6 +17,8 @@ const char* ERR_MESSAGE[] = {
     "Open file failed",
     "Invalid file size",
     "Compile source error",
+    "No script to run",
+    "Runtime error"
 };
 
 enum {

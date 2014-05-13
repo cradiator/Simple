@@ -3,9 +3,51 @@
 #include "ERR.h"
 #include "S_Interpreter.h"
 #include "S_Value.h"
+#include "S_Context.h"
+#include "S_Eval.h"
 
 EXTERN_C void* yy_scan_bytes(char *base, unsigned int size);
 EXTERN_C int yyparse(struct S_Interpreter* interpreter);
+
+struct S_Value* S_NativePrint(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count)
+{
+    if (param_count != 1)
+        return 0;
+
+    struct S_Value* param = param_array[0];
+    switch (param->header.type)
+    {
+    case VALUE_TYPE_STRING:
+        printf("%s\n", ((struct S_Value_String*)param)->string);
+        break;
+
+    case VALUE_TYPE_INTEGER:
+        printf("%d\n", ((struct S_Value_Integer*)param)->value);
+        break;
+
+    case VALUE_TYPE_DOUBLE:
+        printf("%lf\n", ((struct S_Value_Double*)param)->value);
+        break;
+
+    case VALUE_TYPE_TRUE:
+        printf("true\n");
+        break;
+
+    case VALUE_TYPE_FALSE:
+        printf("false\n");
+        break;
+
+    case VALUE_TYPE_NIL:
+        printf("nil\n");
+        break;
+
+    default:
+        printf("type %s\n", VALUE_NAME[param->header.type]);
+        break;
+    }
+
+    return (struct S_Value*)S_CreateValueNil(interpreter);
+}
 
 int CompileInternal(struct S_Interpreter* interpreter)
 {
@@ -32,6 +74,12 @@ struct S_Interpreter* S_NewInterpreter()
 	DCHECK(s->RunningStorage != 0);
 
 	s->LineNo = 1;
+
+    // Create global context.
+    S_ContextPush(s);
+
+    // Push native function.
+    S_AddNativeFunction(s, "Print", S_NativePrint);
 	return s;
 }
 
@@ -85,6 +133,34 @@ int S_DoCompileFile(struct S_Interpreter* interpreter, const char* filename)
     return CompileInternal(interpreter);
 }
 
+int S_Run(struct S_Interpreter* interpreter)
+{
+    if ((interpreter->Flag & INTERPRETER_FLAG_HAVE_SOURCE) == 0)
+    {
+        return ERR_CODE_NO_SCRIPT;
+    }
+
+    // Clear any pending return value.
+    if (S_IsHaveReturnValue(interpreter))
+        S_ClearReturnValue(interpreter);
+
+    // Run every statement
+    struct S_Statement_List* stat_list = interpreter->StatementList;
+    DCHECK(stat_list != 0);
+    if (stat_list->stat == 0)
+    {
+        return ERR_CODE_SUCCESS;
+    }
+
+    bool success = S_Eval_Statement_List(interpreter, stat_list);
+    if (success == false)
+    {
+        return ERR_CODE_RUNTIME_ERROR;
+    }
+
+    return ERR_CODE_SUCCESS;
+}
+
 void S_IncSrcLineNo(struct S_Interpreter* interpreter)
 {
 	interpreter->LineNo++;
@@ -118,7 +194,7 @@ struct S_Value* S_GetReturnValue(struct S_Interpreter* interpreter)
 {
     DCHECK((interpreter->Flag & INTERPRETER_FLAG_HAVE_RETURN) != 0);
 
-    if ((interpreter->Flag & INTERPRETER_FLAG_HAVE_RETURN) != 0)
+    if ((interpreter->Flag & INTERPRETER_FLAG_HAVE_RETURN) == 0)
         return 0;
 
     return interpreter->ReturnValue;
@@ -141,3 +217,14 @@ bool S_IsHaveReturnValue(struct S_Interpreter* interpreter)
 
     return false;
 }
+
+bool S_AddNativeFunction(struct S_Interpreter* interpreter, const char* name, S_NativeFunctionProto native_function)
+{
+    struct S_Local_Variables* variable = S_ContextFindVariable(interpreter, name, true, true);
+    DCHECK(variable != 0);
+
+    variable->value = (struct S_Value*)S_CreateValueNativeFunction(interpreter, native_function);
+    S_MarkValueCollectable(interpreter, variable->value);
+    return true;
+}
+

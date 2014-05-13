@@ -3,6 +3,7 @@
 void DBG_Panic(const char* filename, int lineno, const char* msg)
 {
     fprintf(stderr, "%s:%d %s\n", filename, lineno, msg);
+    __debugbreak();
     exit(-1);
 }
 

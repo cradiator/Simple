@@ -71,7 +71,7 @@ enum {
     NATIVE_FUNCTION,
 };
 
-typedef S_Value* (*S_NativeFunctionProto)(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count);
+typedef struct S_Value* (*S_NativeFunctionProto)(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count);
 
 struct S_Value_Function {
     struct S_Value_Header header;
