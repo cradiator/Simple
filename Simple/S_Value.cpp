@@ -130,3 +130,21 @@ void S_MarkValueCollectable(struct S_Interpreter* interpreter, struct S_Value* v
 
     MM_MarkGCMemoryCollectable(interpreter->RunningStorage, value);
 }
+
+void S_MarkValue(struct S_Interpreter* interpreter, struct S_Value* value)
+{
+    DCHECK(value != 0);
+
+    if (value->header.type == VALUE_TYPE_STRING)
+    {
+        struct S_Value_String* s = (struct S_Value_String*)value;
+        MM_MarkGCMemory(interpreter->RunningStorage, s->string);
+    }
+    else if (value->header.type == VALUE_TYPE_SYMBOL)
+    {
+        struct S_Value_Symbol* s = (struct S_Value_Symbol*)value;
+        MM_MarkGCMemory(interpreter->RunningStorage, s->symbol);
+    }
+
+    MM_MarkGCMemory(interpreter->RunningStorage, value);
+}

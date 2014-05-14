@@ -107,3 +107,5 @@ struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* inter
 // Call this routine to make it gc-collectable.
 void S_MarkValueCollectable(struct S_Interpreter* interpreter, struct S_Value* value);
 
+// For mark-sweep process.
+void S_MarkValue(struct S_Interpreter* interpreter, struct S_Value* value);

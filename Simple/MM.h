@@ -33,6 +33,9 @@ void MM_MarkGCMemory(struct MM_GCStorage* storage, void* p);
 void MM_UnmarkGCStorage(struct MM_GCStorage* storage);
 void MM_SweepGCMemory(struct MM_GCStorage* storage);
 
+// Get size allocated in this gc storage.
+unsigned int MM_GetGCStorageSize(struct MM_GCStorage* storage);
+
 // Dump allocated space in gc storage.
 void MM_DumpGCMemory(struct MM_GCStorage* storage);
 

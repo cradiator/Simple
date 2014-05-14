@@ -16,16 +16,16 @@ int main(int argc, char** argv)
     int status = S_DoCompileFile(interpreter, argv[1]);
     if (status != ERR_CODE_SUCCESS)
     {
-        ERR_Print(ERR_LEVEL_ERROR, "%s\n", ERR_MESSAGE[status]);
         return -1;
     }
 
     status = S_Run(interpreter);
     if (status != ERR_CODE_SUCCESS)
     {
-        ERR_Print(ERR_LEVEL_ERROR, "%s\n", ERR_MESSAGE[status]);
         return -1;
     }
+
+    MM_DumpGCMemory(interpreter->RunningStorage);
 
 	return 0;
 }

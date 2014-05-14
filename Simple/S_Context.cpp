@@ -147,3 +147,34 @@ bool S_ContextIsGlobalVar(struct S_Interpreter* interpreter, const char* name)
     return false;
 }
 
+void S_MarkContext(struct S_Interpreter* interpreter)
+{
+    struct S_Context* current_context = interpreter->Context;
+    while (current_context != 0)
+    {
+        // mark context itself.
+        MM_MarkGCMemory(interpreter->RunningStorage, current_context);
+
+        // mark local variables.
+        struct S_Local_Variables* current_variable = current_context->variables;
+        while (current_variable != 0)
+        {
+            MM_MarkGCMemory(interpreter->RunningStorage, current_variable);
+            MM_MarkGCMemory(interpreter->RunningStorage, current_variable->name);
+            S_MarkValue(interpreter, current_variable->value);
+            current_variable = current_variable->next;
+        }
+
+        // mark globa list
+        struct S_Global_Name* current_global_name = current_context->global_name;
+        while (current_global_name != 0)
+        {
+            MM_MarkGCMemory(interpreter->RunningStorage, current_global_name);
+            MM_MarkGCMemory(interpreter->RunningStorage, current_global_name->name);
+            current_global_name = current_global_name->next;
+        }
+
+        // next context
+        current_context = current_context->next;
+    }
+}

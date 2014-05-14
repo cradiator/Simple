@@ -42,6 +42,9 @@ struct S_Interpreter
 
     // used by S_IncSrcLineNo / S_GetSrcLineNo when compiling.
 	int LineNo;
+
+    // used by S_GCIfNeed.
+    unsigned int GCWaterMark;
 };
 
 // Create an interpreter engine.
@@ -54,6 +57,9 @@ int S_DoCompileFile(struct S_Interpreter* interpreter, const char* filename);
 // Run the compiled script.
 // Call this method after S_DoCompileFile.
 int S_Run(struct S_Interpreter* interpreter);
+
+// Gubbage collect.
+void S_GCIfNeed(struct S_Interpreter* interpreter);
 
 #ifdef __cplusplus
 // Create an native function.

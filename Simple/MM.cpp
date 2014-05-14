@@ -157,6 +157,7 @@ struct GCMemory
 struct MM_GCStorage
 {
     struct GCMemory* start;
+    int total_size;
 };
 
 void CheckGCMemoryValid(struct GCMemory* mem)
@@ -184,6 +185,7 @@ struct MM_GCStorage* MM_NewGCStorage()
 {
     struct MM_GCStorage* s = (struct MM_GCStorage*)malloc(sizeof(struct MM_GCStorage));
     s->start = 0;
+    s->total_size = 0;
     return s;
 }
 
@@ -209,6 +211,7 @@ void* MM_AllocateGCMemory(struct MM_GCStorage* storage, int size, const char* fi
     memset(mem->sig_start + GC_SIG_LEN + size, GC_SIG_END_CONTENT, GC_SIG_LEN);
 
     storage->start = mem;
+    storage->total_size += realsize;
     return mem->sig_start + GC_SIG_LEN;
 }
 
@@ -268,6 +271,8 @@ void MM_SweepGCMemory(struct MM_GCStorage* storage)
         if (!(mem->flag & GC_FLAG_MARKED))
         {
             struct GCMemory* next = mem->next;
+            DCHECK(storage->total_size >= mem->size);
+            storage->total_size -= mem->size + sizeof(struct GCMemory) + sizeof(char)* GC_SIG_LEN;
             free(mem);
             *prev = next;
             mem   = next;
@@ -278,6 +283,13 @@ void MM_SweepGCMemory(struct MM_GCStorage* storage)
         mem  = mem->next;
     }
 }
+
+unsigned int MM_GetGCStorageSize(struct MM_GCStorage* storage)
+{
+    DCHECK(storage != 0);
+    return storage->total_size;
+}
+
 
 void MM_DumpGCMemory(struct MM_GCStorage* storage)
 {

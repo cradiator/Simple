@@ -537,6 +537,7 @@ struct S_Value* EvalRel(struct S_Interpreter* interpreter, struct S_Expression_O
         if (left->header.type == VALUE_TYPE_TRUE)
         {
             result_value = CreateBoolValueHelper(interpreter, true);
+            goto __EXIT;
         }
         else if (left->header.type != VALUE_TYPE_FALSE && left->header.type != VALUE_TYPE_NIL)
         {
@@ -576,7 +577,7 @@ __EXIT:
         S_MarkValueCollectable(interpreter, left);
     if (right != 0)
         S_MarkValueCollectable(interpreter, right);
-    return 0;
+    return result_value;
 }
 
 struct S_Value* EvalAssign(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
@@ -807,10 +808,12 @@ struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interprete
 
             current_exp_list = 0;
             current_param_list = 0;
+            exp_count = param_count = 0;
         }
 
         // eval expression and assign local parameter.
-        value_array = (struct S_Value**)malloc(sizeof(struct Value*) * param_count);
+        if (param_count > 0)
+            value_array = (struct S_Value**)malloc(sizeof(struct Value*) * param_count);
         int current_index = 0;
         while (current_exp_list != 0)
         {
@@ -828,7 +831,7 @@ struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interprete
         has_pushed_contenxt = true;
         current_param_list = function->u.script.param_list;
         current_index = 0;
-        while (current_param_list != 0)
+        while (current_param_list != 0 && param_count > 0)
         {
             struct S_Local_Variables* variable = S_ContextFindVariable(interpreter,
                 current_param_list->symbol->symbol,
@@ -844,12 +847,15 @@ struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interprete
         if (success == true)
         {
             if (S_IsHaveReturnValue(interpreter))
+            {
                 returned_value = S_GetReturnValue(interpreter);
+                S_ClearReturnValue(interpreter);
+            }
             else
+            {
                 returned_value = (struct S_Value*)S_CreateValueNil(interpreter);
+            }
         }
-
-        S_ClearReturnValue(interpreter);
     }
     else
     {
@@ -1039,8 +1045,12 @@ bool S_Eval_Statement_While(struct S_Interpreter* interpreter, struct S_Statemen
 bool S_Eval_Statement_If(struct S_Interpreter* interpreter, struct S_Statement_If* stat)
 {
     struct S_Value* condition_result = S_Eval_Expression(interpreter, stat->condition);
-    bool success = false;
+    if (condition_result == 0)
+    {
+        return false;
+    }
 
+    bool success = false;
     if (condition_result->header.type == VALUE_TYPE_TRUE)
     {
         S_MarkValueCollectable(interpreter, condition_result);
@@ -1108,6 +1118,7 @@ bool S_Eval_Statement(struct S_Interpreter* interpreter, struct S_Statement* sta
         break;
     }
 
+    S_GCIfNeed(interpreter);
     return eval_success;
 }
 

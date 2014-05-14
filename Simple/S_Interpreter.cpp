@@ -6,8 +6,49 @@
 #include "S_Context.h"
 #include "S_Eval.h"
 
+static const unsigned int DEFAULT_GC_WATER_MARK = 0xA00000; // 10MB
+static const unsigned int MAX_GC_WATER_MARK = 0x6400000;   // 100MB
+
 EXTERN_C void* yy_scan_bytes(char *base, unsigned int size);
 EXTERN_C int yyparse(struct S_Interpreter* interpreter);
+
+void S_GC(struct S_Interpreter* interpreter)
+{
+    unsigned int storage_size = MM_GetGCStorageSize(interpreter->RunningStorage);
+    if (storage_size > DEFAULT_GC_WATER_MARK)
+    {
+        interpreter->GCWaterMark = storage_size * 2;
+    }
+
+    if (interpreter->GCWaterMark > MAX_GC_WATER_MARK)
+    {
+        interpreter->GCWaterMark = MAX_GC_WATER_MARK;
+    }
+
+    // unmark all memory
+    MM_UnmarkGCStorage(interpreter->RunningStorage);
+
+    // mark memory
+    S_MarkContext(interpreter);
+    if (S_IsHaveReturnValue(interpreter))
+    {
+        MM_MarkGCMemory(interpreter->RunningStorage, interpreter->ReturnValue);
+    }
+
+    // sweep
+    MM_SweepGCMemory(interpreter->RunningStorage);
+}
+
+void S_GCIfNeed(struct S_Interpreter* interpreter)
+{
+    unsigned int storage_size = MM_GetGCStorageSize(interpreter->RunningStorage);
+    if (storage_size > interpreter->GCWaterMark)
+    {
+        printf("gc when 0x%x\n", storage_size);
+        S_GC(interpreter);
+    }
+}
+
 
 struct S_Value* S_NativePrint(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count)
 {
@@ -49,6 +90,20 @@ struct S_Value* S_NativePrint(struct S_Interpreter* interpreter, struct S_Value*
     return (struct S_Value*)S_CreateValueNil(interpreter);
 }
 
+struct S_Value* S_NativeGC(struct S_Interpreter* interpreter, struct S_Value** /*param_array*/, int param_count)
+{
+    if (param_count != 0)
+    {
+        ERR_Print(ERR_LEVEL_ERROR,
+            "native function gc have no parameter.");
+        return 0;
+    }
+
+    S_GC(interpreter);
+
+    return (struct S_Value*)S_CreateValueNil(interpreter);
+}
+
 int CompileInternal(struct S_Interpreter* interpreter)
 {
     DCHECK((interpreter->Flag & INTERPRETER_FLAG_HAVE_SOURCE) != 0);
@@ -74,12 +129,14 @@ struct S_Interpreter* S_NewInterpreter()
 	DCHECK(s->RunningStorage != 0);
 
 	s->LineNo = 1;
+    s->GCWaterMark = DEFAULT_GC_WATER_MARK;
 
     // Create global context.
     S_ContextPush(s);
 
     // Push native function.
     S_AddNativeFunction(s, "Print", S_NativePrint);
+    S_AddNativeFunction(s, "GC", S_NativeGC);
 	return s;
 }
 

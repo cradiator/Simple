@@ -26,3 +26,7 @@ struct S_Local_Variables {
 // return 0, if variable is not found.
 struct S_Local_Variables* S_ContextFindVariable(struct S_Interpreter* interpreter, const char* name, bool only_local, bool create_if_not_found);
 
+void S_MarkContextCollectable(struct S_Interpreter* interpreter);
+
+// For mark-sweep process.
+void S_MarkContext(struct S_Interpreter* interpreter);
