@@ -25,7 +25,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    MM_DumpGCMemory(interpreter->RunningStorage);
+    // MM_DumpGCMemory(interpreter->RunningStorage);
 
 	return 0;
 }

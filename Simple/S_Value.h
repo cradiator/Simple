@@ -12,6 +12,7 @@ enum {
     VALUE_TYPE_STRING,
     VALUE_TYPE_SYMBOL,
     VALUE_TYPE_FUNCTION,
+    VALUE_TYPE_ARRAY,
 };
 
 __declspec(selectany) 
@@ -23,7 +24,8 @@ const char* VALUE_NAME[] = {
     "double",
     "string",
     "symbol",
-    "function"
+    "function",
+    "array",
 };
 
 struct S_Value_Header {
@@ -59,11 +61,18 @@ struct S_Value_Double {
 struct S_Value_String {
     struct S_Value_Header header;
     char* string;
+    unsigned int length;
 };
 
 struct S_Value_Symbol {
     struct S_Value_Header header;
     char* symbol;
+};
+
+struct S_Value_Array {
+    struct S_Value_Header header;
+    struct S_Value** value_array;
+    unsigned int array_size;
 };
 
 enum {
@@ -102,6 +111,9 @@ struct S_Value_Symbol* S_CreateValueSymbol(struct S_Interpreter* interpreter, co
 struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter, struct S_Parameter_List* param_list, struct S_Code_Block* code_block);
 
 struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* interpreter, S_NativeFunctionProto function);
+
+// this routine would take ownership of value_array.
+struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, struct S_Value** value_array, unsigned int array_size);
 
 // All value returned by S_CreateValueXxx is uncollectable at very begining.
 // Call this routine to make it gc-collectable.

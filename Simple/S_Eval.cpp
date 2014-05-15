@@ -886,6 +886,109 @@ __EXIT_PARAM_MISMATCH:
     return 0;
 }
 
+struct S_Value* S_Eval_Expression_Array(struct S_Interpreter* interpreter, struct S_Expression_Array* exp)
+{
+    struct S_Value** value_array = 0;
+    unsigned int array_size = 0;
+
+    // count expression.
+    S_Expression_List* exp_list = exp->exp_list;
+    while (exp_list != 0 && exp_list->exp != 0)
+    {
+        exp_list = exp_list->next;
+        array_size++;
+    }
+
+    // construct value_array and calculate array_size.
+    if (array_size != 0)
+    {
+        value_array = (struct S_Value**)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value*) * array_size);
+        exp_list = exp->exp_list;
+        int index = 0;
+        while (exp_list != 0)
+        {
+            struct S_Value* v = S_Eval_Expression(interpreter, exp_list->exp);
+            if (v == 0)
+            {
+                // TODO: v / value_array leaked.
+                return 0;
+            }
+            value_array[index] = v;
+            index++;
+            exp_list = exp_list->next;
+        }
+    }
+
+    // create array.
+    struct S_Value* returned_value = (struct S_Value*)S_CreateValueArray(interpreter, value_array, array_size);
+    return returned_value;
+}
+
+struct S_Value* S_Eval_Expression_Subscript(struct S_Interpreter* interpreter, struct S_Expression_Subscript* exp)
+{
+    struct S_Value* returned_value = 0;
+    struct S_Value* index = 0;
+    struct S_Value* instance = 0;
+
+    instance = S_Eval_Expression(interpreter, exp->instance);
+    if (instance == 0)
+    {
+        goto __EXIT;
+    }
+
+    index = S_Eval_Expression(interpreter, exp->index);
+    if (index == 0)
+    {
+        goto __EXIT;
+    }
+
+    if (index->header.type != VALUE_TYPE_INTEGER)
+    {
+        ERR_Print(ERR_LEVEL_ERROR,
+                  "Line %d: %s can not be an array index.",
+                  exp->header.lineno,
+                  VALUE_NAME[index->header.type]);
+        goto __EXIT;
+    }
+
+    struct S_Value_Integer* index_integer = (struct S_Value_Integer*)index;
+    if (instance->header.type == VALUE_TYPE_STRING)
+    {
+        struct S_Value_String* instance_string = (struct S_Value_String*)instance;
+        if (index_integer->value < 0 || (unsigned int)index_integer->value >= instance_string->length)
+        {
+            ERR_Print(ERR_LEVEL_ERROR,
+                      "Line %d: out of string index.",
+                      exp->header.lineno);
+            goto __EXIT;
+        }
+
+        char s[2] = {instance_string->string[index_integer->value], 0};
+        returned_value = (struct S_Value*)S_CreateValueString(interpreter, s);
+    }
+    else if (instance->header.type == VALUE_TYPE_ARRAY)
+    {
+        struct S_Value_Array* instance_array = (struct S_Value_Array*)instance;
+        if (index_integer->value < 0 || (unsigned int)index_integer->value >= instance_array->array_size)
+        {
+            ERR_Print(ERR_LEVEL_ERROR,
+                      "Line %d: out of array index.",
+                      exp->header.lineno);
+            goto __EXIT;
+        }
+
+        // TODO: collectable or not collectable???
+        returned_value = instance_array->value_array[index_integer->value];
+    }
+
+
+__EXIT:
+    if (instance != 0)
+        S_MarkValueCollectable(interpreter, instance);
+    if (index != 0)
+        S_MarkValueCollectable(interpreter, index);
+    return returned_value;
+}
 
 struct S_Value* S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Expression* exp)
 {
@@ -937,6 +1040,14 @@ struct S_Value* S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Ex
 
     case EXPRESSION_TYPE_FUNCTION_CALL:
         returned_value = S_Eval_Expression_Function_Call(interpreter, (struct S_Expression_Function_Call*)exp);
+        break;
+
+    case EXPRESSION_TYPE_ARRAY:
+        returned_value = S_Eval_Expression_Array(interpreter, (struct S_Expression_Array*)exp);
+        break;
+
+    case EXPRESSION_TYPE_SUBSCRIPT:
+        returned_value = S_Eval_Expression_Subscript(interpreter, (struct S_Expression_Subscript*)exp);
         break;
 
     default:

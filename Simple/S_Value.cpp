@@ -70,6 +70,7 @@ struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, co
 
     v->header.type = VALUE_TYPE_STRING;
     v->string = MM_CopyString(interpreter->RunningStorage, string);
+    v->length = strlen(v->string);
     return v;
 }
 
@@ -113,6 +114,20 @@ struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* inter
     return v;
 }
 
+struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, struct S_Value** value_array, unsigned int array_size)
+{
+    DCHECK(value_array != 0 || array_size == 0);
+
+    struct S_Value_Array* v = 
+        (struct S_Value_Array*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_Array));
+    DCHECK(v != 0);
+
+    v->header.type = VALUE_TYPE_ARRAY;
+    v->value_array = value_array;
+    v->array_size = array_size;
+    return v;
+}
+
 void S_MarkValueCollectable(struct S_Interpreter* interpreter, struct S_Value* value)
 {
     DCHECK(value != 0);
@@ -126,6 +141,14 @@ void S_MarkValueCollectable(struct S_Interpreter* interpreter, struct S_Value* v
     {
         struct S_Value_Symbol* s = (struct S_Value_Symbol*)value;
         MM_MarkGCMemoryCollectable(interpreter->RunningStorage, s->symbol);
+    }
+    else if (value->header.type == VALUE_TYPE_ARRAY)
+    {
+        struct S_Value_Array* s = (struct S_Value_Array*)value;
+        if (s->value_array != 0)
+            MM_MarkGCMemoryCollectable(interpreter->RunningStorage, s->value_array);
+        for(unsigned int i = 0; i < s->array_size; ++i)
+            S_MarkValueCollectable(interpreter, (s->value_array)[i]);
     }
 
     MM_MarkGCMemoryCollectable(interpreter->RunningStorage, value);
@@ -144,6 +167,14 @@ void S_MarkValue(struct S_Interpreter* interpreter, struct S_Value* value)
     {
         struct S_Value_Symbol* s = (struct S_Value_Symbol*)value;
         MM_MarkGCMemory(interpreter->RunningStorage, s->symbol);
+    }
+    else if (value->header.type == VALUE_TYPE_ARRAY)
+    {
+        struct S_Value_Array* s = (struct S_Value_Array*)value;
+        if (s->value_array != 0)
+            MM_MarkGCMemory(interpreter->RunningStorage, s->value_array);
+        for(unsigned int i = 0; i < s->array_size; ++i)
+            S_MarkValue(interpreter, (s->value_array)[i]);
     }
 
     MM_MarkGCMemory(interpreter->RunningStorage, value);

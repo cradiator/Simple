@@ -41,6 +41,7 @@
 %token RETURN GLOBAL FUNCTION WHILE IF ELSE NIL TRUE FALSE
 %token ERROR_LEXICAL_MARK
 
+%left '.'
 %left  REL
 %left  CMP
 %right '='
@@ -48,7 +49,7 @@
 %left  '*' '/'
 %right '^'
 
-%type<expression> expr cmp rel func_def assign add_sub mul_div factor func_call term 
+%type<expression> expr cmp rel func_def assign add_sub mul_div factor func_call term postfix
 %type<statement> stat
 %type<statement_list> stat_list start
 %type<code_block> block
@@ -126,9 +127,14 @@ mul_div : mul_div '*' factor {$$ = (struct S_Expression*)S_CreateExpressionOp2(i
 
 factor : factor '^' term {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_FACTOR, $1, $3);}
        | factor '^' func_call {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_FACTOR, $1, $3);}
-       | func_call {$$ = $1;}
-       | term {$$ = $1;}
+       | postfix {$$ = $1;}
        ;
+
+postfix : term {$$ = $1;}
+        | func_call {$$ = $1;}
+        | postfix '[' expr ']' {$$ = (struct S_Expression*)S_CreateExpressionSubscript(interpreter, $1, $3);}
+        | postfix '.' SYMBOL {}
+        ;
 
 term : INTEGER {$$ = (struct S_Expression*)S_CreateExpressionInteger(interpreter, $1);}
      | DOUBLE  {$$ = (struct S_Expression*)S_CreateExpressionDouble(interpreter, $1);}
@@ -139,6 +145,7 @@ term : INTEGER {$$ = (struct S_Expression*)S_CreateExpressionInteger(interpreter
      | FALSE {$$ = (struct S_Expression*)S_CreateExpressionFalse(interpreter);}
      | '(' expr ')' {$$ = $2;}
      | '-' term {$$ = (struct S_Expression*)S_CreateExpressionNegation(interpreter, $2);}
+     | '[' expr_list ']' {$$ = (struct S_Expression*)S_CreateExpressionArray(interpreter, $2);}
      | ERROR_LEXICAL_MARK {YYABORT;}
      ;
 %%

@@ -177,6 +177,39 @@ struct S_Expression_Op2* S_CreateExpressionOp2(struct S_Interpreter* interpreter
     return e;
 }
 
+struct S_Expression_Array* S_CreateExpressionArray(struct S_Interpreter* interpreter,
+                                                   struct S_Expression_List* exp_list)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(exp_list != 0);
+
+    struct S_Expression_Array *e = 
+        (struct S_Expression_Array*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                       sizeof(struct S_Expression_Array));
+    DCHECK(e != 0);
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_ARRAY);
+    e->exp_list = exp_list;
+    return e;
+}
+
+struct S_Expression_Subscript* S_CreateExpressionSubscript(struct S_Interpreter* interpreter,
+                                                           struct S_Expression* instance,
+                                                           struct S_Expression* index)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(instance != 0);
+    DCHECK(index != 0);
+
+    struct S_Expression_Subscript *e = 
+        (struct S_Expression_Subscript*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                           sizeof(struct S_Expression_Subscript));
+    DCHECK(e != 0);
+
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_SUBSCRIPT);
+    e->instance = instance;
+    e->index = index;
+    return e;
+}
 //// End of Expression ////
 
 //// Expression List ////

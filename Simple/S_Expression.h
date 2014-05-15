@@ -22,6 +22,8 @@ enum {
     EXPRESSION_TYPE_FUNCTION_CALL,
     EXPRESSION_TYPE_FUNCTION_DEFINE,
     EXPRESSION_TYPE_OP2,
+    EXPRESSION_TYPE_ARRAY,
+    EXPRESSION_TYPE_SUBSCRIPT,
 };
 
 enum {
@@ -109,6 +111,17 @@ struct S_Expression_Op2 {
     int op;
 };
 
+struct S_Expression_Array {
+    struct S_Expression_Header header;
+    struct S_Expression_List* exp_list;
+};
+
+struct S_Expression_Subscript {
+    struct S_Expression_Header header;
+    struct S_Expression* instance;
+    struct S_Expression* index;
+};
+
 
 EXTERN_C struct S_Expression_Nil* S_CreateExpressionNil(struct S_Interpreter* interpreter);
 
@@ -141,6 +154,12 @@ EXTERN_C struct S_Expression_Op2* S_CreateExpressionOp2(struct S_Interpreter* in
                                                struct S_Expression* exp1, 
                                                struct S_Expression* exp2);
 
+EXTERN_C struct S_Expression_Array* S_CreateExpressionArray(struct S_Interpreter* interpreter,
+                                                            struct S_Expression_List* exp_list);
+
+EXTERN_C struct S_Expression_Subscript* S_CreateExpressionSubscript(struct S_Interpreter* interpreter,
+                                                                    struct S_Expression* instance,
+                                                                    struct S_Expression* index);
 
 //// End of Expression ////
 
