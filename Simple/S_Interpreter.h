@@ -33,6 +33,8 @@ struct S_Interpreter
     // GC-Collectable.
     struct S_Context* Context;
 
+    void* RuntimeStack;
+
     // used by S_DoCompileFile.
     char* SourceFileContent;
     int SourceSize;
@@ -82,6 +84,21 @@ void S_ClearReturnValue(struct S_Interpreter* interpreter);
 bool S_IsHaveReturnValue(struct S_Interpreter* interpreter);
 #endif
 
+// Push a value into runtime stack
+void S_PushRuntimeStackValue(struct S_Interpreter* interpreter, struct S_Value* value);
+
+// Pop the top value from runtime stack
+struct S_Value* S_PopRuntimeStackValue(struct S_Interpreter* interpreter);
+
+// Get stack size.
+unsigned int S_GetRuntimeStackSize(struct S_Interpreter* interpreter);
+
+// Get a value from stack but not pop it.
+// index == 0 get the top value, 1 get the second top value, and so on.
+// The valid index range is [0, stack_size)
+// return 0 if failed, value pointer if success.
+struct S_Value* S_PeekRuntimeStackValue(struct S_Interpreter* interpreter, unsigned int index);
+
 // Increment source line no. used by Simple.l
 EXTERN_C void S_IncSrcLineNo(struct S_Interpreter* interpreter);
 
@@ -89,4 +106,5 @@ EXTERN_C void S_IncSrcLineNo(struct S_Interpreter* interpreter);
 EXTERN_C int S_GetSrcLineNo(struct S_Interpreter* interpreter);
 
 EXTERN_C void yyerror(struct S_Interpreter* interpreter, const char* message, ...);
+
 

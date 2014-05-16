@@ -11,6 +11,7 @@ static const unsigned int MAX_GC_WATER_MARK = 0x6400000;   // 100MB
 
 EXTERN_C void* yy_scan_bytes(char *base, unsigned int size);
 EXTERN_C int yyparse(struct S_Interpreter* interpreter);
+void InitRuntimeStackValue(struct S_Interpreter* interpreter);
 
 void S_GC(struct S_Interpreter* interpreter)
 {
@@ -133,6 +134,9 @@ struct S_Interpreter* S_NewInterpreter()
 
     // Create global context.
     S_ContextPush(s);
+
+    // Create runtime stack.
+    InitRuntimeStackValue(s);
 
     // Push native function.
     S_AddNativeFunction(s, "Print", S_NativePrint);
@@ -285,3 +289,82 @@ bool S_AddNativeFunction(struct S_Interpreter* interpreter, const char* name, S_
     return true;
 }
 
+// For rumtime stack
+const static int DEFAULT_RUNTIME_STACK_SIZE = 0x1000;
+struct RuntimeStack {
+    unsigned int total_size;
+    unsigned int current_size;
+    struct S_Value** stack;
+};
+
+
+void InitRuntimeStackValue(struct S_Interpreter* interpreter)
+{
+    DCHECK(interpreter->RuntimeStack == 0);
+
+    struct RuntimeStack* rs = 
+        (struct RuntimeStack*)MM_Malloc(interpreter->RunningStorage, sizeof(struct RuntimeStack));
+    rs->total_size   = DEFAULT_RUNTIME_STACK_SIZE;
+    rs->current_size = 0;
+    rs->stack = (struct S_Value**)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value**) * DEFAULT_RUNTIME_STACK_SIZE);
+
+    interpreter->RuntimeStack = rs;
+}
+
+void GrowRuntimeStack(struct S_Interpreter* interpreter)
+{
+    struct RuntimeStack* old_stack = (struct RuntimeStack*)interpreter->RuntimeStack;
+    
+    unsigned int new_size = old_stack->total_size + DEFAULT_RUNTIME_STACK_SIZE;
+    struct S_Value** new_stack_array = 
+        (struct S_Value**)MM_Malloc(interpreter->RunningStorage,
+                                    sizeof(struct S_Value*) * new_size);
+
+    memcpy(new_stack_array, old_stack->stack, old_stack->current_size * sizeof(struct S_Value*));
+    old_stack->stack = new_stack_array;
+    old_stack->total_size = new_size;
+}
+
+void GrowRuntimeStackIfNeed(struct S_Interpreter* interpreter)
+{
+    struct RuntimeStack* stack = (struct RuntimeStack*)interpreter->RuntimeStack;
+    if (stack->current_size >= stack->total_size)
+        GrowRuntimeStack(interpreter);
+}
+
+void S_PushRuntimeStackValue(struct S_Interpreter* interpreter, struct S_Value* value)
+{
+    DCHECK(value != 0);
+
+    GrowRuntimeStackIfNeed(interpreter);
+    struct RuntimeStack* stack = (struct RuntimeStack*)interpreter->RuntimeStack;
+    DCHECK(stack->current_size < stack->total_size);
+
+    stack->stack[stack->current_size++] = value;
+}
+
+struct S_Value* S_PopRuntimeStackValue(struct S_Interpreter* interpreter)
+{
+    struct RuntimeStack* stack = (struct RuntimeStack*)interpreter->RuntimeStack;
+    DCHECK(stack->current_size > 0);
+
+    struct S_Value* returned_value = stack->stack[stack->current_size - 1];
+    stack->current_size--;
+    return returned_value;
+}
+
+unsigned int S_GetRuntimeStackSize(struct S_Interpreter* interpreter)
+{
+    struct RuntimeStack* stack = (struct RuntimeStack*)interpreter->RuntimeStack;
+    return stack->current_size;
+}
+
+struct S_Value* S_PeekRuntimeStackValue(struct S_Interpreter* interpreter, unsigned int index)
+{
+    struct RuntimeStack* stack = (struct RuntimeStack*)interpreter->RuntimeStack;
+    if (index >= stack->current_size)
+        return 0;
+
+    unsigned int real_index = stack->current_size - 1 - index;
+    return stack->stack[real_index];
+}
