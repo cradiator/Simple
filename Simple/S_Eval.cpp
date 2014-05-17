@@ -8,7 +8,7 @@
 #include "DBG.h"
 #include "ERR.h"
 
-struct S_Value* S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Expression* exp);
+bool S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Expression* exp);
 bool S_Eval_Statement_List(struct S_Interpreter* interpreter, struct S_Statement_List* stat_list);
 bool S_Eval_Code_Block(struct S_Interpreter* interpreter, struct S_Code_Block* code_block);
 
@@ -92,7 +92,7 @@ bool S_Eval_Expression_Symbol(struct S_Interpreter* interpreter, struct S_Expres
 
 bool S_Eval_Expression_Negation(struct S_Interpreter* interpreter, struct S_Expression_Negation* exp)
 {
-    bool suceess = S_Eval_Expression(interpreter, exp->exp);
+    bool success = S_Eval_Expression(interpreter, exp->exp);
     if (!success)
         return false;
 
@@ -119,8 +119,11 @@ bool S_Eval_Expression_Negation(struct S_Interpreter* interpreter, struct S_Expr
     return success;
 }
 
-struct S_Value* EvalAdd(struct S_Interpreter* interpreter, int lineno, struct S_Value* left, struct S_Value* right)
+bool EvalAdd(struct S_Interpreter* interpreter, int lineno)
 {
+    struct S_Value* left  = S_PopRuntimeStackValue(interpreter);
+    struct S_Value* right = S_PopRuntimeStackValue(interpreter);
+
     // For string concatenate.
     if (left->header.type == VALUE_TYPE_STRING || right->header.type == VALUE_TYPE_STRING)
     {
@@ -142,7 +145,8 @@ struct S_Value* EvalAdd(struct S_Interpreter* interpreter, int lineno, struct S_
         struct S_Value* returned_value = (struct S_Value*)S_CreateValueString(interpreter, buffer);
         free(buffer);
 
-        return returned_value;        
+        S_PushRuntimeStackValue(interpreter, returned_value);
+        return true;        
     }
 
     if (left->header.type != VALUE_TYPE_INTEGER && left->header.type != VALUE_TYPE_DOUBLE)
@@ -174,7 +178,8 @@ struct S_Value* EvalAdd(struct S_Interpreter* interpreter, int lineno, struct S_
         returned_value = (struct S_Value*)S_CreateValueDouble(interpreter, left_double + right_double);
     }
 
-    return returned_value;
+    S_PushRuntimeStackValue(interpreter, returned_value);
+    return true;
 
 __ERROR_EXIT:
     ERR_Print(ERR_LEVEL_ERROR, 
@@ -182,12 +187,15 @@ __ERROR_EXIT:
               lineno, 
               VALUE_NAME[left->header.type],
               VALUE_NAME[right->header.type]);
-    return 0;
+    return false;
 }
 
-struct S_Value* EvalSubMulDiv(struct S_Interpreter* interpreter, int lineno, struct S_Value* left, struct S_Value* right, int op)
+bool EvalSubMulDiv(struct S_Interpreter* interpreter, int lineno, int op)
 {
     DCHECK(op == OP2_SUB || op == OP2_MUL || op == OP2_DIV);
+
+    struct S_Value* left  = S_PopRuntimeStackValue(interpreter);
+    struct S_Value* right = S_PopRuntimeStackValue(interpreter);
 
     if (left->header.type != VALUE_TYPE_INTEGER && left->header.type != VALUE_TYPE_DOUBLE)
     {
@@ -239,13 +247,14 @@ struct S_Value* EvalSubMulDiv(struct S_Interpreter* interpreter, int lineno, str
             returned_value = (struct S_Value*)S_CreateValueDouble(interpreter, left_double / right_double);
     }
 
-    return returned_value;
+    S_PushRuntimeStackValue(interpreter, returned_value);
+    return true;
 
 __ERROR_DIV_BY_ZERO:
     ERR_Print(ERR_LEVEL_ERROR,
               "Line %d: divided by zero.",
               lineno);
-    return 0;
+    return false;
 
 __ERROR_EXIT:
     ERR_Print(ERR_LEVEL_ERROR, 
@@ -253,11 +262,13 @@ __ERROR_EXIT:
               lineno, 
               VALUE_NAME[left->header.type],
               VALUE_NAME[right->header.type]);
-    return 0;
+    return false;
 }
 
-struct S_Value* EvalFactor(struct S_Interpreter* interpreter, int lineno, struct S_Value* left, struct S_Value* right)
+bool EvalFactor(struct S_Interpreter* interpreter, int lineno)
 {
+    struct S_Value* left  = S_PopRuntimeStackValue(interpreter);
+    struct S_Value* right = S_PopRuntimeStackValue(interpreter);
     if (left->header.type != VALUE_TYPE_INTEGER && left->header.type != VALUE_TYPE_DOUBLE)
     {
         goto __ERROR_EXIT;
@@ -284,11 +295,11 @@ struct S_Value* EvalFactor(struct S_Interpreter* interpreter, int lineno, struct
                 ERR_Print(ERR_LEVEL_ERROR,
                           "Line: %d 0 can not be factored by 0",
                           lineno);
-                return 0;
+                return false;
             }
 
-            returned_value = (struct S_Value*)S_CreateValueInteger(interpreter, 0);
-            return returned_value;
+            S_PushRuntimeStackValue(interpreter, (struct S_Value*)S_CreateValueInteger(interpreter, 0));
+            return true;
         }
 
         // positive right hand.
@@ -299,8 +310,8 @@ struct S_Value* EvalFactor(struct S_Interpreter* interpreter, int lineno, struct
             {
                 value *= left_integer->value;
             }
-            returned_value = (struct S_Value*)S_CreateValueInteger(interpreter, value);
-            return returned_value;
+            S_PushRuntimeStackValue(interpreter, (struct S_Value*)S_CreateValueInteger(interpreter, value));
+            return true;
         }
 
         // negetive right hand.
@@ -309,8 +320,8 @@ struct S_Value* EvalFactor(struct S_Interpreter* interpreter, int lineno, struct
         {
             value /= (double)left_integer->value;
         }
-        returned_value = (struct S_Value*)S_CreateValueDouble(interpreter, value);
-        return returned_value;
+        S_PushRuntimeStackValue(interpreter, (struct S_Value*)S_CreateValueDouble(interpreter, value));
+        return true;
     }
     // for double left hand.
     else
@@ -324,11 +335,11 @@ struct S_Value* EvalFactor(struct S_Interpreter* interpreter, int lineno, struct
                 ERR_Print(ERR_LEVEL_ERROR,
                           "Line: %d 0.0 can not be factored by 0",
                           lineno);
-                return 0;
+                return false;
             }
 
-            returned_value = (struct S_Value*)S_CreateValueInteger(interpreter, 0);
-            return returned_value;
+            S_PushRuntimeStackValue(interpreter, (struct S_Value*)S_CreateValueInteger(interpreter, 0));
+            return true;
         }
 
         // positive right hand.
@@ -339,8 +350,8 @@ struct S_Value* EvalFactor(struct S_Interpreter* interpreter, int lineno, struct
             {
                 value *= left_double->value;
             }
-            returned_value = (struct S_Value*)S_CreateValueDouble(interpreter, value);
-            return returned_value;
+            S_PushRuntimeStackValue(interpreter, (struct S_Value*)S_CreateValueDouble(interpreter, value));
+            return true;
         }
 
         // negetive right hand.
@@ -349,8 +360,8 @@ struct S_Value* EvalFactor(struct S_Interpreter* interpreter, int lineno, struct
         {
             value /= (double)left_double->value;
         }
-        returned_value = (struct S_Value*)S_CreateValueDouble(interpreter, value);
-        return returned_value;
+        S_PushRuntimeStackValue(interpreter, (struct S_Value*)S_CreateValueDouble(interpreter, value));
+        return true;
     }
 
     // SHOUDN NOT GO THERE.
@@ -363,15 +374,18 @@ __ERROR_EXIT:
               lineno, 
               VALUE_NAME[left->header.type],
               VALUE_NAME[right->header.type]);
-    return 0;
+    return false;
 }
 
-struct S_Value* EvalCmp(struct S_Interpreter* interpreter, int lineno, struct S_Value* left, struct S_Value* right, int op)
+bool EvalCmp(struct S_Interpreter* interpreter, int lineno, int op)
 {
     DCHECK(op >= OP2_G && op <= OP2_NE);
 
     struct S_Value* returned_value = 0;
     int cmp_result = 0;
+
+    struct S_Value* left  = S_PopRuntimeStackValue(interpreter);
+    struct S_Value* right = S_PopRuntimeStackValue(interpreter);
 
     // string compare.
     if (left->header.type == VALUE_TYPE_STRING)
@@ -478,8 +492,8 @@ struct S_Value* EvalCmp(struct S_Interpreter* interpreter, int lineno, struct S_
         true_false = cmp_result != 0 ? true : false; 
     }
 
-    returned_value = CreateBoolValueHelper(interpreter, true_false);
-    return returned_value;
+    S_PushRuntimeStackValue(interpreter, CreateBoolValueHelper(interpreter, true_false));
+    return true;
 
 __ERROR_EXIT:
     ERR_Print(ERR_LEVEL_ERROR,
@@ -488,7 +502,7 @@ __ERROR_EXIT:
               VALUE_NAME[left->header.type],
               VALUE_NAME[right->header.type],
               op);
-    return 0;
+    return false;
 }
 
 bool EvalRel(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
@@ -496,7 +510,6 @@ bool EvalRel(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
     DCHECK(exp->op == OP2_AND || exp->op == OP2_OR);
 
     bool success = false;
-    bool left = false, right = false;
     struct S_Value* temp_value = 0;
     if (exp->op == OP2_AND)
     {
@@ -512,12 +525,12 @@ bool EvalRel(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
             success = true;
             goto __EXIT;
         }
-        else if (left->header.type != VALUE_TYPE_TRUE)
+        else if (temp_value->header.type != VALUE_TYPE_TRUE)
         {
             ERR_Print(ERR_LEVEL_ERROR,
                       "Line %d: type %s can not && something",
                       exp->header.lineno,
-                      VALUE_NAME[left->header.type]);
+                      VALUE_NAME[temp_value->header.type]);
             success = false;
             goto __EXIT;
         }
@@ -536,7 +549,7 @@ bool EvalRel(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
             success = true;
             goto __EXIT;
         }
-        else if (right->header.type == VALUE_TYPE_TRUE)
+        else if (temp_value->header.type == VALUE_TYPE_TRUE)
         {
             S_PushRuntimeStackValue(interpreter, CreateBoolValueHelper(interpreter, true));
             success = true;
@@ -547,7 +560,7 @@ bool EvalRel(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
             ERR_Print(ERR_LEVEL_ERROR,
                       "Line %d: type %s can not be && with",
                       exp->header.lineno,
-                      VALUE_NAME[right->header.type]);
+                      VALUE_NAME[temp_value->header.type]);
             success = false;
             goto __EXIT;
         }
@@ -567,12 +580,12 @@ bool EvalRel(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
             success = true;
             goto __EXIT;
         }
-        else if (left->header.type != VALUE_TYPE_FALSE && left->header.type != VALUE_TYPE_NIL)
+        else if (temp_value->header.type != VALUE_TYPE_FALSE && temp_value->header.type != VALUE_TYPE_NIL)
         {
             ERR_Print(ERR_LEVEL_ERROR,
                       "Line %d: type %s can not || something",
                       exp->header.lineno,
-                      VALUE_NAME[left->header.type]);
+                      VALUE_NAME[temp_value->header.type]);
             success = false;
             goto __EXIT;
         }
@@ -602,7 +615,7 @@ bool EvalRel(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
             ERR_Print(ERR_LEVEL_ERROR,
                       "Line %d: type %s can not be || with",
                       exp->header.lineno,
-                      VALUE_NAME[right->header.type]);
+                      VALUE_NAME[temp_value->header.type]);
             success = false;
             goto __EXIT;
         }
@@ -637,7 +650,7 @@ bool EvalAssign(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
     DCHECK(variables != 0);
 
     // Assign the value.
-    variables->value = S_PopRuntimeStackValue(interpreter);
+    variables->value = S_PeekRuntimeStackValue(interpreter, 0);
 
     return true;
 }
@@ -658,33 +671,30 @@ bool S_Eval_Expression_Op2(struct S_Interpreter* interpreter, struct S_Expressio
         return EvalAssign(interpreter, exp);
     }
 
-    S_Value* left  = 0;
-    S_Value* right = 0;
-    S_Value* returned_value = 0;
-
-
-    left = S_Eval_Expression(interpreter, exp->exp1);
-    if (left == 0)
+    // Push exp2 and exp1 result.
+    bool success = false;
+    success = S_Eval_Expression(interpreter, exp->exp2);
+    if (!success)
         goto __EXIT;
 
-    right = S_Eval_Expression(interpreter, exp->exp2);
-    if (right == 0)
+    success = S_Eval_Expression(interpreter, exp->exp1);
+    if (!success)
         goto __EXIT;
     
     switch(exp->op)
     {
         case OP2_ADD:
-            returned_value = EvalAdd(interpreter, exp->header.lineno, left, right);
+            success = EvalAdd(interpreter, exp->header.lineno);
             break;
 
         case OP2_SUB:
         case OP2_MUL:
         case OP2_DIV:
-            returned_value = EvalSubMulDiv(interpreter, exp->header.lineno, left, right, exp->op);
+            success = EvalSubMulDiv(interpreter, exp->header.lineno, exp->op);
             break;
 
         case OP2_FACTOR:
-            returned_value = EvalFactor(interpreter, exp->header.lineno, left, right);
+            success = EvalFactor(interpreter, exp->header.lineno);
             break;
 
         case OP2_G:
@@ -693,7 +703,7 @@ bool S_Eval_Expression_Op2(struct S_Interpreter* interpreter, struct S_Expressio
         case OP2_L:
         case OP2_LE:
         case OP2_NE:
-            returned_value = EvalCmp(interpreter, exp->header.lineno, left, right, exp->op);
+            success = EvalCmp(interpreter, exp->header.lineno, exp->op);
             break;
             
         default:
@@ -702,21 +712,20 @@ bool S_Eval_Expression_Op2(struct S_Interpreter* interpreter, struct S_Expressio
                       exp->header.lineno,
                       exp->op);
             DCHECK(false);
+            success = false;
             break;
     }
 
 __EXIT:
-    if (left != 0)
-        S_MarkValueCollectable(interpreter, left);
-    if (right != 0)
-        S_MarkValueCollectable(interpreter, right);
-    return returned_value;
+    return success;
 }
 
-struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S_Expression_Function_Call* exp)
+bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S_Expression_Function_Call* exp)
 {
+    bool success = false;
+    int start_stack_index = S_GetRuntimeStackSize(interpreter);
+
     // Get function pointer.
-    struct S_Value* function_value = 0;
     if (exp->fn->header.type == EXPRESSION_TYPE_SYMBOL)
     {
         struct S_Expression_Symbol* exp_symbol = (struct S_Expression_Symbol*)exp->fn;
@@ -727,7 +736,8 @@ struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interprete
                                                                    false);  // not create
         if (variable != 0)
         {
-            function_value = variable->value;
+            S_PushRuntimeStackValue(interpreter, variable->value);
+            success = true;
         }
         else
         {
@@ -735,15 +745,18 @@ struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interprete
                       "Line %d: symbol %s not found",
                       exp->fn->header.lineno,
                       exp_symbol->symbol);
+            success = false;
         }
     }
     else
     {
-        function_value = S_Eval_Expression(interpreter, exp->fn);
+        success = S_Eval_Expression(interpreter, exp->fn);
     }
 
-    if (function_value == 0)
-        return 0;
+    if (!success)
+        return success;
+
+    struct S_Value* function_value = S_PeekRuntimeStackValue(interpreter, 0);
 
     if (function_value->header.type != VALUE_TYPE_FUNCTION)
     {
@@ -751,8 +764,8 @@ struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interprete
                   "Line %d: %s can not be called as a function.",
                   exp->header.lineno,
                   VALUE_NAME[function_value->header.type]);
-        S_MarkValueCollectable(interpreter, function_value);
-        return 0;
+        S_PopRuntimeStackValue(interpreter);
+        return false;
     }
 
     // Evaluate the function body.
@@ -789,14 +802,13 @@ struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interprete
         int current_param_index = 0;
         while (current_exp_list != 0)
         {
-            struct S_Value* val = S_Eval_Expression(interpreter, current_exp_list->exp);
-            if (val == 0)
+            success = S_Eval_Expression(interpreter, current_exp_list->exp);
+            if (!success)
             {
-                // TODO: val memory leaked.
                 goto __EXIT;
             }
 
-            value_array[current_param_index] = val;
+            value_array[current_param_index] = S_PeekRuntimeStackValue(interpreter, 0);
             current_exp_list = current_exp_list->next;
             current_param_index++;
         }
@@ -805,6 +817,7 @@ struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interprete
         S_ContextPush(interpreter);
         has_pushed_contenxt = true;
         returned_value = native_ptr(interpreter, value_array, exp_count);
+        success = true;
     }
     else if (function->type == SCRIPT_FUNCTION)
     {
@@ -849,10 +862,10 @@ struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interprete
         int current_index = 0;
         while (current_exp_list != 0)
         {
-            S_Value* exp_val = S_Eval_Expression(interpreter, current_exp_list->exp);
-            if (exp_val == 0)
-                goto __EXIT;    // TODO: exp_val leaked.
-            value_array[current_index] = exp_val;
+            success = S_Eval_Expression(interpreter, current_exp_list->exp);
+            if (!success)
+                goto __EXIT;
+            value_array[current_index] = S_PeekRuntimeStackValue(interpreter, 0);
             current_index++;
 
             current_exp_list   = current_exp_list->next;
@@ -870,7 +883,6 @@ struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interprete
                 true,    // only local
                 true);   // create if not found.
             variable->value = value_array[current_index];
-            S_MarkValueCollectable(interpreter, variable->value);
             current_param_list = current_param_list->next;
         }
 
@@ -892,16 +904,19 @@ struct S_Value* S_Eval_Expression_Function_Call(struct S_Interpreter* interprete
     else
     {
         DCHECK(false);
+        success = false;
     }
 
 __EXIT:
     if (has_pushed_contenxt)
         S_ContextPop(interpreter);
-    if (function_value != 0)
-        S_MarkValueCollectable(interpreter, function_value);
     if (value_array != 0)
         free(value_array);
-    return returned_value;
+    while (start_stack_index != S_GetRuntimeStackSize(interpreter))
+        S_PopRuntimeStackValue(interpreter);
+    if (success)
+        S_PushRuntimeStackValue(interpreter, returned_value);
+    return success;
 
 __EXIT_PARAM_MISMATCH:
     ERR_Print(ERR_LEVEL_ERROR,
@@ -909,17 +924,19 @@ __EXIT_PARAM_MISMATCH:
               exp->header.lineno);
     if (has_pushed_contenxt)
         S_ContextPop(interpreter);
-    if (returned_value != 0)
-        S_MarkValueCollectable(interpreter, returned_value);
-    if (function_value != 0)
-        S_MarkValueCollectable(interpreter, function_value);
     if (value_array != 0)
         free(value_array);
-    return 0;
+    while (start_stack_index != S_GetRuntimeStackSize(interpreter))
+        S_PopRuntimeStackValue(interpreter);
+
+    return false;
 }
 
-struct S_Value* S_Eval_Expression_Array(struct S_Interpreter* interpreter, struct S_Expression_Array* exp)
+bool S_Eval_Expression_Array(struct S_Interpreter* interpreter, struct S_Expression_Array* exp)
 {
+    unsigned int start_stack_index = S_GetRuntimeStackSize(interpreter);
+    bool success = false;
+
     struct S_Value** value_array = 0;
     unsigned int array_size = 0;
 
@@ -934,45 +951,63 @@ struct S_Value* S_Eval_Expression_Array(struct S_Interpreter* interpreter, struc
     // construct value_array and calculate array_size.
     if (array_size != 0)
     {
-        value_array = (struct S_Value**)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value*) * array_size);
+        value_array = (struct S_Value**)malloc(sizeof(struct S_Value*) * array_size);
         exp_list = exp->exp_list;
         int index = 0;
         while (exp_list != 0)
         {
-            struct S_Value* v = S_Eval_Expression(interpreter, exp_list->exp);
-            if (v == 0)
+            success = S_Eval_Expression(interpreter, exp_list->exp);
+            if (!success)
             {
-                // TODO: v / value_array leaked.
-                return 0;
+                goto __EXIT;
             }
-            value_array[index] = v;
+            value_array[index] = S_PeekRuntimeStackValue(interpreter, 0);
             index++;
             exp_list = exp_list->next;
         }
+        success = true;
     }
 
-    // create array.
-    struct S_Value* returned_value = (struct S_Value*)S_CreateValueArray(interpreter, value_array, array_size);
-    return returned_value;
+__EXIT:
+    while (start_stack_index != S_GetRuntimeStackSize(interpreter))
+        S_PopRuntimeStackValue(interpreter);
+
+    if (success)
+    {
+        // create array.
+        S_PushRuntimeStackValue(interpreter, (struct S_Value*)S_CreateValueArray(interpreter, value_array, array_size));
+    }
+
+    if (value_array != 0)
+    {
+        free(value_array);
+    }
+
+    return success;
 }
 
-struct S_Value* S_Eval_Expression_Subscript(struct S_Interpreter* interpreter, struct S_Expression_Subscript* exp)
+bool S_Eval_Expression_Subscript(struct S_Interpreter* interpreter, struct S_Expression_Subscript* exp)
 {
+    bool success = false;
+    unsigned int start_stack_index = S_GetRuntimeStackSize(interpreter);
+
     struct S_Value* returned_value = 0;
     struct S_Value* index = 0;
     struct S_Value* instance = 0;
 
-    instance = S_Eval_Expression(interpreter, exp->instance);
-    if (instance == 0)
+    success = S_Eval_Expression(interpreter, exp->instance);
+    if (!success)
     {
         goto __EXIT;
     }
+    instance = S_PeekRuntimeStackValue(interpreter, 0);
 
-    index = S_Eval_Expression(interpreter, exp->index);
-    if (index == 0)
+    success = S_Eval_Expression(interpreter, exp->index);
+    if (!success)
     {
         goto __EXIT;
     }
+    index = S_PeekRuntimeStackValue(interpreter, 0);
 
     if (index->header.type != VALUE_TYPE_INTEGER)
     {
@@ -980,6 +1015,7 @@ struct S_Value* S_Eval_Expression_Subscript(struct S_Interpreter* interpreter, s
                   "Line %d: %s can not be an array index.",
                   exp->header.lineno,
                   VALUE_NAME[index->header.type]);
+        success = false;
         goto __EXIT;
     }
 
@@ -992,11 +1028,13 @@ struct S_Value* S_Eval_Expression_Subscript(struct S_Interpreter* interpreter, s
             ERR_Print(ERR_LEVEL_ERROR,
                       "Line %d: out of string index.",
                       exp->header.lineno);
+            success = false;
             goto __EXIT;
         }
 
         char s[2] = {instance_string->string[index_integer->value], 0};
         returned_value = (struct S_Value*)S_CreateValueString(interpreter, s);
+        success = true;
     }
     else if (instance->header.type == VALUE_TYPE_ARRAY)
     {
@@ -1006,80 +1044,86 @@ struct S_Value* S_Eval_Expression_Subscript(struct S_Interpreter* interpreter, s
             ERR_Print(ERR_LEVEL_ERROR,
                       "Line %d: out of array index.",
                       exp->header.lineno);
+            success = false;
             goto __EXIT;
         }
 
-        // TODO: collectable or not collectable???
         returned_value = instance_array->value_array[index_integer->value];
+        success = true;
     }
 
 
 __EXIT:
-    if (instance != 0)
-        S_MarkValueCollectable(interpreter, instance);
-    if (index != 0)
-        S_MarkValueCollectable(interpreter, index);
-    return returned_value;
+    while(start_stack_index != S_GetRuntimeStackSize(interpreter))
+        S_PopRuntimeStackValue(interpreter);
+
+    if (success)
+    {
+        S_PushRuntimeStackValue(interpreter, returned_value);
+    }
+
+    return success;
 }
 
-struct S_Value* S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Expression* exp)
+bool S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Expression* exp)
 {
     DCHECK(interpreter != 0);
     DCHECK(exp != 0);
 
-    struct S_Value* returned_value = 0;
+    unsigned int start_stack_index = S_GetRuntimeStackSize(interpreter);
+    bool success = 0;
     switch (exp->header.type)
     {
     case EXPRESSION_TYPE_NIL:
-        returned_value = S_Eval_Expression_Nil(interpreter, (struct S_Expression_Nil*)exp);
+        success = S_Eval_Expression_Nil(interpreter, (struct S_Expression_Nil*)exp);
         break;
 
     case EXPRESSION_TYPE_INTEGER:
-        returned_value = S_Eval_Expression_Integer(interpreter, (struct S_Expression_Integer*)exp);
+        success = S_Eval_Expression_Integer(interpreter, (struct S_Expression_Integer*)exp);
         break;
 
     case EXPRESSION_TYPE_DOUBLE:
-        returned_value = S_Eval_Expression_Double(interpreter, (struct S_Expression_Double*)exp);
+        success = S_Eval_Expression_Double(interpreter, (struct S_Expression_Double*)exp);
         break;
 
     case EXPRESSION_TYPE_TRUE:
-        returned_value = S_Eval_Expression_True(interpreter, (struct S_Expression_True*)exp);
+        success = S_Eval_Expression_True(interpreter, (struct S_Expression_True*)exp);
         break;
 
     case EXPRESSION_TYPE_FALSE:
-        returned_value = S_Eval_Expression_False(interpreter, (struct S_Expression_False*)exp);
+        success = S_Eval_Expression_False(interpreter, (struct S_Expression_False*)exp);
         break;
 
     case EXPRESSION_TYPE_STRING:
-        returned_value = S_Eval_Expression_String(interpreter, (struct S_Expression_String*)exp);
+        success = S_Eval_Expression_String(interpreter, (struct S_Expression_String*)exp);
         break;
 
     case EXPRESSION_TYPE_SYMBOL:
-        returned_value = S_Eval_Expression_Symbol(interpreter, (struct S_Expression_Symbol*)exp);
+        success = S_Eval_Expression_Symbol(interpreter, (struct S_Expression_Symbol*)exp);
         break;
 
     case EXPRESSION_TYPE_NEGATION:
-        returned_value = S_Eval_Expression_Negation(interpreter, (struct S_Expression_Negation*)exp);
+        success = S_Eval_Expression_Negation(interpreter, (struct S_Expression_Negation*)exp);
         break;
 
     case EXPRESSION_TYPE_OP2:
-        returned_value = S_Eval_Expression_Op2(interpreter, (struct S_Expression_Op2*)exp);
+        success = S_Eval_Expression_Op2(interpreter, (struct S_Expression_Op2*)exp);
         break;
 
     case EXPRESSION_TYPE_FUNCTION_DEFINE:
-        returned_value = S_Eval_Expression_Function_Define(interpreter, (struct S_Expression_Function_Define*)exp);
+        success = S_Eval_Expression_Function_Define(interpreter, (struct S_Expression_Function_Define*)exp);
         break;
 
     case EXPRESSION_TYPE_FUNCTION_CALL:
-        returned_value = S_Eval_Expression_Function_Call(interpreter, (struct S_Expression_Function_Call*)exp);
+        success = S_Eval_Expression_Function_Call(interpreter, (struct S_Expression_Function_Call*)exp);
         break;
 
     case EXPRESSION_TYPE_ARRAY:
-        returned_value = S_Eval_Expression_Array(interpreter, (struct S_Expression_Array*)exp);
+        success = S_Eval_Expression_Array(interpreter, (struct S_Expression_Array*)exp);
         break;
 
     case EXPRESSION_TYPE_SUBSCRIPT:
-        returned_value = S_Eval_Expression_Subscript(interpreter, (struct S_Expression_Subscript*)exp);
+        success = S_Eval_Expression_Subscript(interpreter, (struct S_Expression_Subscript*)exp);
         break;
 
     default:
@@ -1088,11 +1132,21 @@ struct S_Value* S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Ex
                   exp->header.lineno,
                   exp->header.type);
         DCHECK(false);
+        success = false;
         break;
 
     }
 
-    return returned_value;
+    if (success)
+    {
+        DCHECK(S_GetRuntimeStackSize(interpreter) == start_stack_index + 1);
+    }
+    else
+    {
+        DCHECK(S_GetRuntimeStackSize(interpreter) == start_stack_index);
+    }
+
+    return success;
 }
 
 /// End of Evaluate expression ///
@@ -1100,11 +1154,11 @@ struct S_Value* S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Ex
 /// Evaluate statement ///
 bool S_Eval_Statement_Expression(struct S_Interpreter* interpreter, struct S_Statement_Expression* stat)
 {
-    struct S_Value* returned_value = S_Eval_Expression(interpreter, stat->exp);
-    if (returned_value == 0)
+    bool success = S_Eval_Expression(interpreter, stat->exp);
+    if (!success)
         return false;
 
-    S_MarkValueCollectable(interpreter, returned_value);
+    S_PopRuntimeStackValue(interpreter);
     return true;
 }
 
@@ -1117,11 +1171,11 @@ bool S_Eval_Statement_Global(struct S_Interpreter* interpreter, struct S_Stateme
 
 bool S_Eval_Statement_Return(struct S_Interpreter* interpreter, struct S_Statement_Return* stat)
 {
-    struct S_Value* returned_value = S_Eval_Expression(interpreter, stat->exp);
-    if (returned_value == 0)
+    bool success = S_Eval_Expression(interpreter, stat->exp);
+    if (!success)
         return false;
 
-    S_SetReturnValue(interpreter, returned_value);
+    S_SetReturnValue(interpreter, S_PopRuntimeStackValue(interpreter));
     return true;
 }
 
@@ -1136,7 +1190,6 @@ bool S_Eval_Statement_Function_Define(struct S_Interpreter* interpreter, struct 
     DCHECK(function != 0);
     variable->value = (struct S_Value*)function;
 
-    S_MarkValueCollectable(interpreter, (struct S_Value*)function);
     return true;
 }
 
@@ -1147,37 +1200,44 @@ bool S_Eval_Statement_While(struct S_Interpreter* interpreter, struct S_Statemen
     for (;;)
     {
         // evaluate conditon expression, return if failed.
-        condition_result = S_Eval_Expression(interpreter, stat->condition);
-        if (condition_result == 0)
+        success = S_Eval_Expression(interpreter, stat->condition);
+        if (!success)
         {
-            success = false;
             break;
         }
 
+        condition_result = S_PeekRuntimeStackValue(interpreter, 0);
+
         if (condition_result->header.type == VALUE_TYPE_TRUE)
         {
-            S_MarkValueCollectable(interpreter, condition_result);
             success = S_Eval_Code_Block(interpreter, stat->body);
             if (!success)
+            {
+                // pop condition_result out.
+                S_PopRuntimeStackValue(interpreter);
                 break;
+            }
+
+            // pop condition_result out.
+            S_PopRuntimeStackValue(interpreter);
 
             // if success, loop back.
         }
         // condition is false, return.
         else if (condition_result->header.type == VALUE_TYPE_FALSE || condition_result->header.type == VALUE_TYPE_NIL)
         {
-            S_MarkValueCollectable(interpreter, condition_result);
             success = true;
+            S_PopRuntimeStackValue(interpreter);
             break;
         }
         else
         {
-            S_MarkValueCollectable(interpreter, condition_result);
             ERR_Print(ERR_LEVEL_ERROR,
                       "Line %d: %s can not be a condition.",
                       stat->condition->header.lineno,
                       VALUE_NAME[condition_result->header.type]);
             success = false;
+            S_PopRuntimeStackValue(interpreter);
             break;
         }
     }
@@ -1187,21 +1247,24 @@ bool S_Eval_Statement_While(struct S_Interpreter* interpreter, struct S_Statemen
 
 bool S_Eval_Statement_If(struct S_Interpreter* interpreter, struct S_Statement_If* stat)
 {
-    struct S_Value* condition_result = S_Eval_Expression(interpreter, stat->condition);
-    if (condition_result == 0)
+    bool success = S_Eval_Expression(interpreter, stat->condition);
+    if (!success)
     {
-        return false;
+        return success;
     }
 
-    bool success = false;
+    struct S_Value* condition_result = S_PeekRuntimeStackValue(interpreter, 0);
+    success = false;
     if (condition_result->header.type == VALUE_TYPE_TRUE)
     {
-        S_MarkValueCollectable(interpreter, condition_result);
+        // Pop condition_result out.
+        S_PopRuntimeStackValue(interpreter);
         success = S_Eval_Code_Block(interpreter, stat->body);
     }
     else if (condition_result->header.type == VALUE_TYPE_FALSE || condition_result->header.type == VALUE_TYPE_NIL)
     {
-        S_MarkValueCollectable(interpreter, condition_result);
+        // Pop condition_result out.
+        S_PopRuntimeStackValue(interpreter);
         if (stat->else_body != 0)
             success = S_Eval_Code_Block(interpreter, stat->else_body);
         else
@@ -1209,12 +1272,13 @@ bool S_Eval_Statement_If(struct S_Interpreter* interpreter, struct S_Statement_I
     }
     else
     {
-        S_MarkValueCollectable(interpreter, condition_result);
         success = false;
         ERR_Print(ERR_LEVEL_ERROR,
                  "Line %d: %s can not be a condition.",
                  stat->condition->header.lineno,
                  VALUE_NAME[condition_result->header.type]);
+                // Pop condition_result out.
+        S_PopRuntimeStackValue(interpreter);
     }
 
     return success;
@@ -1223,8 +1287,9 @@ bool S_Eval_Statement_If(struct S_Interpreter* interpreter, struct S_Statement_I
 bool S_Eval_Statement(struct S_Interpreter* interpreter, struct S_Statement* stat)
 {
     DCHECK(interpreter != 0);
-
     DCHECK(stat != 0);
+
+    unsigned int start_stack_index = S_GetRuntimeStackSize(interpreter);
 
     bool eval_success = false;
     switch(stat->header.type)
@@ -1261,6 +1326,7 @@ bool S_Eval_Statement(struct S_Interpreter* interpreter, struct S_Statement* sta
         break;
     }
 
+    DCHECK(start_stack_index == S_GetRuntimeStackSize(interpreter));
     S_GCIfNeed(interpreter);
     return eval_success;
 }
@@ -1275,7 +1341,7 @@ bool S_Eval_Statement_List(struct S_Interpreter* interpreter, struct S_Statement
     DCHECK(stat_list != 0);
 
     // empty list, return true.
-    if (stat_list == 0)
+    if (stat_list->stat == 0)
     {
         DCHECK(stat_list->next == 0);
         return true;

@@ -11,7 +11,9 @@ static const unsigned int MAX_GC_WATER_MARK = 0x6400000;   // 100MB
 
 EXTERN_C void* yy_scan_bytes(char *base, unsigned int size);
 EXTERN_C int yyparse(struct S_Interpreter* interpreter);
+
 void InitRuntimeStackValue(struct S_Interpreter* interpreter);
+void MarkRuntimeStack(struct S_Interpreter* interpreter);
 
 void S_GC(struct S_Interpreter* interpreter)
 {
@@ -29,12 +31,15 @@ void S_GC(struct S_Interpreter* interpreter)
     // unmark all memory
     MM_UnmarkGCStorage(interpreter->RunningStorage);
 
-    // mark memory
+    // mark context
     S_MarkContext(interpreter);
     if (S_IsHaveReturnValue(interpreter))
     {
-        MM_MarkGCMemory(interpreter->RunningStorage, interpreter->ReturnValue);
+        S_MarkValue(interpreter, interpreter->ReturnValue);
     }
+
+    // mark runtime stack
+    MarkRuntimeStack(interpreter);
 
     // sweep
     MM_SweepGCMemory(interpreter->RunningStorage);
@@ -285,7 +290,6 @@ bool S_AddNativeFunction(struct S_Interpreter* interpreter, const char* name, S_
     DCHECK(variable != 0);
 
     variable->value = (struct S_Value*)S_CreateValueNativeFunction(interpreter, native_function);
-    S_MarkValueCollectable(interpreter, variable->value);
     return true;
 }
 
@@ -309,6 +313,28 @@ void InitRuntimeStackValue(struct S_Interpreter* interpreter)
     rs->stack = (struct S_Value**)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value**) * DEFAULT_RUNTIME_STACK_SIZE);
 
     interpreter->RuntimeStack = rs;
+}
+
+void MarkRuntimeStack(struct S_Interpreter* interpreter)
+{
+    DCHECK(interpreter->RuntimeStack != 0);
+    struct RuntimeStack* stack = (struct RuntimeStack*)interpreter->RuntimeStack;
+
+    MM_MarkGCMemory(interpreter->RunningStorage, stack);
+    if (stack->stack != 0)
+    {
+        MM_MarkGCMemory(interpreter->RunningStorage, stack->stack);
+    }
+
+    if (stack->current_size == 0)
+    {
+        return;
+    }
+
+    for(int i = 0; i < stack->current_size; ++i)
+    {
+        S_MarkValue(interpreter, stack->stack[i]);
+    }
 }
 
 void GrowRuntimeStack(struct S_Interpreter* interpreter)

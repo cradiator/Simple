@@ -94,6 +94,8 @@ struct S_Value_Function {
     } u;
 };
 
+// S_CreateValueXxx routine's returned value could be gabbage collected by default.
+// If you want to pin it in memeory, push it onto runtime stack or assign it in context variable. 
 struct S_Value_Nil* S_CreateValueNil(struct S_Interpreter* interpreter);
 
 struct S_Value_True* S_CreateValueTrue(struct S_Interpreter* interpreter);
@@ -112,12 +114,7 @@ struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter
 
 struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* interpreter, S_NativeFunctionProto function);
 
-// this routine would take ownership of value_array.
 struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, struct S_Value** value_array, unsigned int array_size);
-
-// All value returned by S_CreateValueXxx is uncollectable at very begining.
-// Call this routine to make it gc-collectable.
-void S_MarkValueCollectable(struct S_Interpreter* interpreter, struct S_Value* value);
 
 // For mark-sweep process.
 void S_MarkValue(struct S_Interpreter* interpreter, struct S_Value* value);

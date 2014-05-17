@@ -139,7 +139,6 @@ void MM_FreeStorage(struct MM_Storage* storage)
 enum 
 {
     GC_FLAG_MARKED      = 1,
-    GC_FLAG_COLLECTABLE = 2,
 };
 
 struct GCMemory
@@ -235,14 +234,6 @@ void MM_MarkGCMemory(struct MM_GCStorage*, void* p)
     mem->flag |= GC_FLAG_MARKED;
 }
 
-void MM_MarkGCMemoryCollectable(struct MM_GCStorage* storage, void* p)
-{
-    struct GCMemory* mem = (struct GCMemory*)((char*)p - sizeof(struct GCMemory));
-    CheckGCMemoryValid(mem);
-
-    mem->flag |= GC_FLAG_COLLECTABLE;
-}
-
 void MM_UnmarkGCStorage(struct MM_GCStorage* storage)
 {
     struct GCMemory* mem = storage->start;
@@ -259,15 +250,7 @@ void MM_SweepGCMemory(struct MM_GCStorage* storage)
     struct GCMemory** prev = &storage->start;
     while (mem != 0)
     {
-        // The memory is not collectable now.
-        if ((mem->flag & GC_FLAG_COLLECTABLE) == 0)
-        {
-            prev = &mem->next;
-            mem  = mem->next;
-            continue;
-        }
-
-        // The memory is collectable and not refernced by any pointer. Release it.
+        // the memory not refernced by any pointer. release it.
         if (!(mem->flag & GC_FLAG_MARKED))
         {
             struct GCMemory* next = mem->next;

@@ -28,9 +28,6 @@ void S_ContextPush(struct S_Interpreter* interpreter)
     context->variables = 0;
 
     interpreter->Context = context;
-
-    // mark the context gc-collectable.
-    MM_MarkGCMemoryCollectable(interpreter->RunningStorage, context);
 }
 
 void S_ContextPop(struct S_Interpreter* interpreter)
@@ -104,9 +101,6 @@ struct S_Local_Variables* S_ContextFindVariable(struct S_Interpreter* interprete
     var->value = 0;
 
     interpreter->Context->variables = var;
-
-    MM_MarkGCMemoryCollectable(interpreter->RunningStorage, var->name);
-    MM_MarkGCMemoryCollectable(interpreter->RunningStorage, var);
 	return var;
 }
 
@@ -121,9 +115,6 @@ void S_ContextMarkVarGlobal(struct S_Interpreter* interpreter, const char* name)
     global_name->name = MM_CopyString(interpreter->RunningStorage, name);
 
     context->global_name = global_name;
-
-    MM_MarkGCMemoryCollectable(interpreter->RunningStorage, global_name->name);
-    MM_MarkGCMemoryCollectable(interpreter->RunningStorage, global_name);
 }
 
 bool S_ContextIsGlobalVar(struct S_Interpreter* interpreter, const char* name)

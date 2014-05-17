@@ -24,10 +24,6 @@ struct MM_GCStorage* MM_NewGCStorage();
 void* MM_AllocateGCMemory(struct MM_GCStorage* storage, int size, const char* filename, int lineno); 
 char* MM_CopyStringInGCMemory(struct MM_GCStorage* storage, const char* string, const char* filename, int lineno);
 
-// Only GC-Collectable memory would be released by mark-sweep.
-// The memory allocated by MM_AllocateGCMemory or MM_Malloc is not collectable by default.
-void MM_MarkGCMemoryCollectable(struct MM_GCStorage* storage, void* p);
-
 // For Mark-Sweep gc
 void MM_MarkGCMemory(struct MM_GCStorage* storage, void* p);
 void MM_UnmarkGCStorage(struct MM_GCStorage* storage);
