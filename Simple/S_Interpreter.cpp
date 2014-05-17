@@ -61,6 +61,7 @@ struct S_Value* S_NativePrint(struct S_Interpreter* interpreter, struct S_Value*
     if (param_count != 1)
         return 0;
 
+    unsigned int i = 0;
     struct S_Value* param = param_array[0];
     switch (param->header.type)
     {
@@ -88,6 +89,16 @@ struct S_Value* S_NativePrint(struct S_Interpreter* interpreter, struct S_Value*
         printf("nil\n");
         break;
 
+        /*
+    case VALUE_TYPE_ARRAY:
+        printf("[");
+        for (i = 0; i < ((struct S_Value_Array*)param)->array_size; ++i)
+        {
+            S_NativePrint(interpreter, && (((struct S_Value_Array*)param)->value_array[i]), 1);
+        }
+        printf("]");
+        break;
+        */
     default:
         printf("type %s\n", VALUE_NAME[param->header.type]);
         break;

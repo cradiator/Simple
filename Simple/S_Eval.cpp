@@ -629,30 +629,106 @@ bool EvalAssign(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
 {
     DCHECK(exp->op == OP2_ASSIGN);
 
-    if (exp->exp1->header.type != EXPRESSION_TYPE_SYMBOL)
+    if (exp->exp1->header.type != EXPRESSION_TYPE_SYMBOL && exp->exp1->header.type != EXPRESSION_TYPE_SUBSCRIPT)
     {
         ERR_Print(ERR_LEVEL_ERROR,
-                  "Line %d: %s is not an symbol, can not be assigned.",
+                  "Line %d: %s is not an symbol or array, can not be assigned.",
                   exp->header.lineno,
                   VALUE_NAME[exp->exp1->header.type]);
         return false;
     }
 
     // Eval right hands.
-    struct S_Expression_Symbol* left_symbol = (struct S_Expression_Symbol*)exp->exp1;
     bool success = S_Eval_Expression(interpreter, exp->exp2);
     if (!success)
         return false;
 
-    // Create or Get context variables.
-    bool is_symbol_global = S_ContextIsGlobalVar(interpreter, left_symbol->symbol);
-    struct S_Local_Variables* variables = S_ContextFindVariable(interpreter, left_symbol->symbol, !is_symbol_global, true);
-    DCHECK(variables != 0);
+    success = false;
+    if (exp->exp1->header.type == EXPRESSION_TYPE_SYMBOL)
+    {
+        struct S_Expression_Symbol* left_symbol = (struct S_Expression_Symbol*)exp->exp1;
 
-    // Assign the value.
-    variables->value = S_PeekRuntimeStackValue(interpreter, 0);
+        // Create or Get context variables.
+        bool is_symbol_global = S_ContextIsGlobalVar(interpreter, left_symbol->symbol);
+        struct S_Local_Variables* variables = S_ContextFindVariable(interpreter, left_symbol->symbol, !is_symbol_global, true);
+        DCHECK(variables != 0);
 
-    return true;
+        // Assign the value.
+        variables->value = S_PeekRuntimeStackValue(interpreter, 0);
+        success = true;
+    }
+    else
+    {
+        // subscript array.
+
+        // eval instance
+        struct S_Expression_Subscript* exp_sub = (struct S_Expression_Subscript*)exp->exp1;
+        success = S_Eval_Expression(interpreter, exp_sub->instance);
+        if (!success)
+        {
+            S_PopRuntimeStackValue(interpreter);    // pop instance
+            goto __EXIT;
+        }
+
+        struct S_Value_Array* instance = (struct S_Value_Array*)S_PeekRuntimeStackValue(interpreter, 0);
+        if (instance->header.type != VALUE_TYPE_ARRAY)
+        {
+            ERR_Print(ERR_LEVEL_ERROR,
+                "Line %d: %s can not be subscripted.",
+                exp_sub->instance->header.lineno,
+                VALUE_NAME[instance->header.type]);
+            S_PopRuntimeStackValue(interpreter);    // pop instance
+            S_PopRuntimeStackValue(interpreter);    // pop right hand value
+            success = false;
+            goto __EXIT;
+        }
+
+        // eval index
+        success = S_Eval_Expression(interpreter, exp_sub->index);
+        if (!success)
+        {
+            S_PopRuntimeStackValue(interpreter);    // pop instance
+            S_PopRuntimeStackValue(interpreter);    // pop right hand value
+            success = false;
+            goto __EXIT;
+        }
+
+        struct S_Value_Integer* index = (struct S_Value_Integer*)S_PeekRuntimeStackValue(interpreter, 0);
+        if (index->header.type != VALUE_TYPE_INTEGER)
+        {
+            ERR_Print(ERR_LEVEL_ERROR,
+                "Line %d: %s can not be an array index.",
+                exp_sub->index->header.lineno,
+                VALUE_NAME[index->header.type]);
+            success = false;
+            S_PopRuntimeStackValue(interpreter);    // pop index
+            S_PopRuntimeStackValue(interpreter);    // pop instance
+            S_PopRuntimeStackValue(interpreter);    // pop right hand value
+            goto __EXIT;
+        }
+
+        if ((unsigned int)index->value >= instance->array_size)
+        {
+            ERR_Print(ERR_LEVEL_ERROR,
+                "Line %d: Out of index.",
+                exp_sub->index->header.lineno);
+            success = false;
+            S_PopRuntimeStackValue(interpreter);    // pop index
+            S_PopRuntimeStackValue(interpreter);    // pop instance
+            S_PopRuntimeStackValue(interpreter);    // pop right hand value
+            goto __EXIT;
+        }
+
+        // assign value
+        instance->value_array[index->value] = S_PeekRuntimeStackValue(interpreter, 2); // get right hand value
+
+        S_PopRuntimeStackValue(interpreter);    // pop index
+        S_PopRuntimeStackValue(interpreter);    // pop instance
+        success = true;
+    }
+
+__EXIT:
+    return success;
 }
 
 bool S_Eval_Expression_Op2(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
@@ -884,6 +960,7 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
                 true);   // create if not found.
             variable->value = value_array[current_index];
             current_param_list = current_param_list->next;
+            current_index++;
         }
 
         // eval function body.
