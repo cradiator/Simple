@@ -884,6 +884,7 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
                 true);   // create if not found.
             variable->value = value_array[current_index];
             current_param_list = current_param_list->next;
+            current_index++;
         }
 
         // eval function body.
