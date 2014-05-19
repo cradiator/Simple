@@ -632,9 +632,8 @@ bool EvalAssign(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
     if (exp->exp1->header.type != EXPRESSION_TYPE_SYMBOL)
     {
         ERR_Print(ERR_LEVEL_ERROR,
-                  "Line %d: %s is not an symbol, can not be assigned.",
-                  exp->header.lineno,
-                  VALUE_NAME[exp->exp1->header.type]);
+                  "Line %d: left hand is not an symbol, can not be assigned.",
+                  exp->header.lineno);
         return false;
     }
 
