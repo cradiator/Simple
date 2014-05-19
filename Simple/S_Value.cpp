@@ -3,6 +3,8 @@
 #include "DBG.h"
 #include "S_Interpreter.h"
 #include "S_Value.h"
+#include <vector>
+#include <string>
 
 struct S_Value_Nil* S_CreateValueNil(struct S_Interpreter* interpreter)
 {
@@ -130,6 +132,54 @@ struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, stru
     v->value_array = array;
     v->array_size = array_size;
     return v;
+}
+
+void ConvertValueToStringHelper(struct S_Value* value, std::string& result)
+{
+    int value_type = value->header.type;
+    if (value_type == VALUE_TYPE_STRING)
+    {
+        result += ((struct S_Value_String*)value)->string;
+    }
+    else if (value_type == VALUE_TYPE_INTEGER)
+    {
+        char buf[32] = { 0 };
+        sprintf_s(buf, "%d", ((struct S_Value_Integer*)value)->value);
+        result += buf;
+    }
+    else if (value_type == VALUE_TYPE_DOUBLE)
+    {
+        char buf[32];
+        sprintf_s(buf, "%lf", ((struct S_Value_Double*)value)->value);
+        result += buf;
+    }
+    else if (value_type == VALUE_TYPE_ARRAY)
+    {
+        struct S_Value_Array* array = (struct S_Value_Array*)value;
+        result += '[';
+        for (unsigned int i = 0; i < array->array_size; ++i)
+        {
+            ConvertValueToStringHelper(array->value_array[i], result);
+            if (i != array->array_size - 1)
+                result += ", ";
+        }
+        result += ']';
+    }
+    else
+    {
+        result += VALUE_NAME[value_type];
+    }
+}
+
+struct S_Value_String* S_ConvertValueToString(struct S_Interpreter* interpreter, struct S_Value* value)
+{
+    DCHECK(value != 0);
+    DCHECK(interpreter != 0);
+
+    std::string tmp_string;
+    ConvertValueToStringHelper(value, tmp_string);
+
+    return S_CreateValueString(interpreter, tmp_string.c_str());
 }
 
 void S_MarkValue(struct S_Interpreter* interpreter, struct S_Value* value)

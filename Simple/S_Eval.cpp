@@ -783,7 +783,17 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
         {
             S_ContextPush(interpreter);
             has_pushed_contenxt = true;
-            returned_value = native_ptr(interpreter, 0, 0);
+            unsigned int prev_stack_count = S_GetRuntimeStackSize(interpreter);
+            success = native_ptr(interpreter, 0, 0);
+            if (success)
+            {
+                DCHECK(prev_stack_count + 1 == S_GetRuntimeStackSize(interpreter));
+                returned_value = S_PopRuntimeStackValue(interpreter);
+            }
+            else
+            {
+                DCHECK(prev_stack_count == S_GetRuntimeStackSize(interpreter));
+            }
             goto __EXIT;
         }
 
@@ -815,9 +825,18 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
 
         // Call native function.
         S_ContextPush(interpreter);
+        unsigned int prev_stack_count = S_GetRuntimeStackSize(interpreter);
         has_pushed_contenxt = true;
-        returned_value = native_ptr(interpreter, value_array, exp_count);
-        success = true;
+        success = native_ptr(interpreter, value_array, exp_count);
+        if (success)
+        {
+            DCHECK(prev_stack_count + 1 == S_GetRuntimeStackSize(interpreter));
+            returned_value = S_PopRuntimeStackValue(interpreter);
+        }
+        else
+        {
+            DCHECK(prev_stack_count == S_GetRuntimeStackSize(interpreter));
+        }
     }
     else if (function->type == SCRIPT_FUNCTION)
     {

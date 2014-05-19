@@ -30,6 +30,7 @@ const char* VALUE_NAME[] = {
 
 struct S_Value_Header {
     int type;
+
 };
 
 struct S_Value {
@@ -80,7 +81,8 @@ enum {
     NATIVE_FUNCTION,
 };
 
-typedef struct S_Value* (*S_NativeFunctionProto)(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count);
+#ifdef __cplusplus
+typedef bool (*S_NativeFunctionProto)(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count);
 
 struct S_Value_Function {
     struct S_Value_Header header;
@@ -93,6 +95,9 @@ struct S_Value_Function {
         } script;
     } u;
 };
+#else
+struct S_Value_Funtion;
+#endif
 
 // S_CreateValueXxx routine's returned value could be gabbage collected by default.
 // If you want to pin it in memeory, push it onto runtime stack or assign it in context variable. 
@@ -112,9 +117,13 @@ struct S_Value_Symbol* S_CreateValueSymbol(struct S_Interpreter* interpreter, co
 
 struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter, struct S_Parameter_List* param_list, struct S_Code_Block* code_block);
 
+#ifdef __cplusplus
 struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* interpreter, S_NativeFunctionProto function);
+#endif
 
 struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, struct S_Value** value_array, unsigned int array_size);
 
 // For mark-sweep process.
 void S_MarkValue(struct S_Interpreter* interpreter, struct S_Value* value);
+
+struct S_Value_String* S_ConvertValueToString(struct S_Interpreter* interpreter, struct S_Value* value);
