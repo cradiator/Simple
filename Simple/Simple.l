@@ -55,11 +55,14 @@
 
 <INITIAL>"else"     {yylloc = S_GetSrcLineNo(interpreter); return ELSE;}
 
+<INITIAL>"elif"     {yylloc = S_GetSrcLineNo(interpreter); return ELIF;}
+
 <INITIAL>"nil"      {yylloc = S_GetSrcLineNo(interpreter); return NIL;}
 
 <INITIAL>"true"     {yylloc = S_GetSrcLineNo(interpreter); return TRUE;}
 
 <INITIAL>"false"    {yylloc = S_GetSrcLineNo(interpreter); return FALSE;}
+
 
 <INITIAL>[a-zA-Z_][a-zA-Z0-9_]*   {yylloc = S_GetSrcLineNo(interpreter); yylval.id = S_AllocateStringInParsingStorage(interpreter, yytext); return SYMBOL;}
 

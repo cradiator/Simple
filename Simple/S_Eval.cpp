@@ -1284,6 +1284,32 @@ bool S_Eval_Statement_If(struct S_Interpreter* interpreter, struct S_Statement_I
     {
         // Pop condition_result out.
         S_PopRuntimeStackValue(interpreter);
+        struct S_Elif_List* elif_list = stat->elif_list;
+        while (elif_list != 0)
+        {
+            success = S_Eval_Expression(interpreter, elif_list->condition);
+            if (!success)
+            {
+                goto __EXIT;
+            }
+
+            condition_result = S_PeekRuntimeStackValue(interpreter, 0);
+            if (condition_result->header.type == VALUE_TYPE_TRUE)
+            {
+                // Pop condition_result out.
+                S_PopRuntimeStackValue(interpreter);
+                success = S_Eval_Code_Block(interpreter, elif_list->body);
+                goto __EXIT;
+            }
+            else
+            {
+                // Pop condition_result out.
+                S_PopRuntimeStackValue(interpreter);
+            }
+
+            elif_list = elif_list->next;
+        }
+
         if (stat->else_body != 0)
             success = S_Eval_Code_Block(interpreter, stat->else_body);
         else
@@ -1300,6 +1326,7 @@ bool S_Eval_Statement_If(struct S_Interpreter* interpreter, struct S_Statement_I
         S_PopRuntimeStackValue(interpreter);
     }
 
+__EXIT:
     return success;
 }
 

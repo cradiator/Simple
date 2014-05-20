@@ -69,10 +69,11 @@
      WHILE = 267,
      IF = 268,
      ELSE = 269,
-     NIL = 270,
-     TRUE = 271,
-     FALSE = 272,
-     ERROR_LEXICAL_MARK = 273
+     ELIF = 270,
+     NIL = 271,
+     TRUE = 272,
+     FALSE = 273,
+     ERROR_LEXICAL_MARK = 274
    };
 #endif
 
@@ -98,11 +99,12 @@ typedef union YYSTYPE
   struct S_Code_Block*      code_block;
   struct S_Expression_List* expression_list;
   struct S_Parameter_List*  parameter_list;
+  struct S_Elif_List*       elif_list;
 
 
 
 /* Line 1676 of yacc.c  */
-#line 106 "simple.tab.h"
+#line 108 "simple.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
