@@ -78,6 +78,20 @@ bool S_NativeToString(struct S_Interpreter* interpreter, struct S_Value** param_
     return true;
 }
 
+bool S_NativeArray(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count)
+{
+    if (param_count != 1 || param_array[0]->header.type != VALUE_TYPE_INTEGER)
+    {
+        ERR_Print(ERR_LEVEL_ERROR,
+            "function array only take 1 integer parameter");
+        return false;
+    }
+
+    struct S_Value_Integer* value_integer = (struct S_Value_Integer*)(param_array[0]);
+    S_PushRuntimeStackValue(interpreter, (struct S_Value*)S_CreateValueArray(interpreter, 0, (unsigned int)value_integer->value));
+    return true;
+}
+
 bool S_NativeGC(struct S_Interpreter* interpreter, struct S_Value** /*param_array*/, int param_count)
 {
     if (param_count != 0)
@@ -130,6 +144,7 @@ struct S_Interpreter* S_NewInterpreter()
     S_AddNativeFunction(s, "print", S_NativePrint);
     S_AddNativeFunction(s, "gc", S_NativeGC);
     S_AddNativeFunction(s, "to_string", S_NativeToString);
+    S_AddNativeFunction(s, "array", S_NativeArray);
 	return s;
 }
 

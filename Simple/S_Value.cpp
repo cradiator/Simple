@@ -118,7 +118,7 @@ struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* inter
 
 struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, struct S_Value** value_array, unsigned int array_size)
 {
-    DCHECK(value_array != 0 || array_size == 0);
+    DCHECK(value_array != 0 || array_size != 0);
 
     struct S_Value_Array* v = 
         (struct S_Value_Array*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_Array));
@@ -126,7 +126,16 @@ struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, stru
 
     struct S_Value** array = (struct S_Value**)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value*) * array_size);
     DCHECK(array != 0);
-    memcpy(array, value_array, sizeof(struct S_Value*) * array_size);
+
+    if (value_array != 0)
+    {
+        memcpy(array, value_array, sizeof(struct S_Value*) * array_size);
+    }
+    else
+    {
+        for (int i = 0; i < array_size; ++i)
+            array[i] = (struct S_Value*)S_CreateValueNil(interpreter);
+    }
 
     v->header.type = VALUE_TYPE_ARRAY;
     v->value_array = array;

@@ -121,6 +121,7 @@ struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter
 struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* interpreter, S_NativeFunctionProto function);
 #endif
 
+// if value_array is NULL, would create an array all of whose elements is S_Value_Nil.
 struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, struct S_Value** value_array, unsigned int array_size);
 
 // For mark-sweep process.
