@@ -4,7 +4,8 @@ struct S_Interpreter;
 struct S_Expression_Function_Define;
 
 enum {
-    VALUE_TYPE_NIL,
+    VALUE_TYPE_MIN,
+    VALUE_TYPE_NIL = VALUE_TYPE_MIN,
     VALUE_TYPE_TRUE,
     VALUE_TYPE_FALSE,
     VALUE_TYPE_INTEGER,
@@ -13,6 +14,7 @@ enum {
     VALUE_TYPE_SYMBOL,
     VALUE_TYPE_FUNCTION,
     VALUE_TYPE_ARRAY,
+    VALUE_TYPE_MAX,
 };
 
 __declspec(selectany) 
@@ -28,9 +30,15 @@ const char* VALUE_NAME[] = {
     "array",
 };
 
+struct S_Field_List {
+    struct S_Field_List* next;
+    struct S_Value_Symbol* name;
+    struct S_Value* value;
+};
+
 struct S_Value_Header {
     int type;
-
+    struct S_Field_List* field_list;
 };
 
 struct S_Value {
@@ -79,6 +87,8 @@ struct S_Value_Array {
 enum {
     SCRIPT_FUNCTION,
     NATIVE_FUNCTION,
+//     SCRIPT_METHOD,
+//     NATIVE_METHOD,
 };
 
 #ifdef __cplusplus
@@ -95,6 +105,10 @@ struct S_Value_Function {
         } script;
     } u;
 };
+
+struct S_Field_List* S_Find_Value_Field(struct S_Interpreter* interpreter, struct S_Value* value, const char* field_name, bool create_if_not_exist);
+void S_Set_Value_Field(struct S_Interpreter* interpreter, struct S_Value* value, const char* field_name, struct S_Value* field_value);
+
 #else
 struct S_Value_Funtion;
 #endif

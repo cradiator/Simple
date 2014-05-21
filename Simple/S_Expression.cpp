@@ -210,6 +210,26 @@ struct S_Expression_Subscript* S_CreateExpressionSubscript(struct S_Interpreter*
     e->index = index;
     return e;
 }
+
+struct S_Expression_Dot* S_CreateExpressionDot(struct S_Interpreter* interpreter,
+                                               struct S_Expression* instance,
+                                               struct S_Expression_Symbol* field)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(instance != 0);
+    DCHECK(field != 0);
+
+    struct S_Expression_Dot *e = 
+        (struct S_Expression_Dot*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                     sizeof(struct S_Expression_Dot));
+    DCHECK(e != 0);
+
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_DOT);
+    e->instance = instance;
+    e->field = field;
+    return e;
+}
+
 //// End of Expression ////
 
 //// Expression List ////

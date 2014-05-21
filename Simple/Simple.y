@@ -109,12 +109,6 @@ assign : assign '=' func_def {$$ = (struct S_Expression*)S_CreateExpressionOp2(i
 func_def : FUNCTION '(' param_list ')' block {$$ = (struct S_Expression*)S_CreateExpressionFunctionDefine(interpreter, $3, $5);}
          ;
 
-
-func_call : term '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
-          | func_def '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
-          | func_call '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
-          ;
-
 rel : rel REL cmp {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, $2, $1, $3);}
     | cmp {$$ = $1;}
     ;
@@ -138,10 +132,15 @@ factor : factor '^' term {$$ = (struct S_Expression*)S_CreateExpressionOp2(inter
        | postfix {$$ = $1;}
        ;
 
+func_call : postfix '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
+          | func_def '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
+          | func_call '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
+          ;
+
+
 postfix : term {$$ = $1;}
-        | func_call {$$ = $1;}
         | postfix '[' expr ']' {$$ = (struct S_Expression*)S_CreateExpressionSubscript(interpreter, $1, $3);}
-        | postfix '.' SYMBOL {}
+        | postfix '.' SYMBOL {$$ = (struct S_Expression*)S_CreateExpressionDot(interpreter, $1, (struct S_Expression_Symbol*)$3);}
         ;
 
 term : INTEGER {$$ = (struct S_Expression*)S_CreateExpressionInteger(interpreter, $1);}

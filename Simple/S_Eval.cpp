@@ -1084,6 +1084,44 @@ __EXIT:
     return success;
 }
 
+bool S_Eval_Expression_Dot(struct S_Interpreter* interpreter, struct S_Expression_Dot* exp)
+{
+    bool success = false;
+    unsigned int start_stack_index = S_GetRuntimeStackSize(interpreter);
+    struct S_Value* returned_value = 0;
+
+    success = S_Eval_Expression(interpreter, exp->instance);
+    if (!success)
+        goto __EXIT;
+
+    struct S_Value* instance = S_PeekRuntimeStackValue(interpreter, 0);
+
+    struct S_Field_List* field = S_Find_Value_Field(interpreter, instance, exp->field->symbol, false);
+    if (field == 0)
+    {
+        success = false;
+        ERR_Print(ERR_LEVEL_ERROR,
+            "Line %d: instance %s don't have field %s",
+            exp->instance->header.lineno,
+            VALUE_NAME[instance->header.type],
+            exp->field->symbol);
+        goto __EXIT;
+    }
+
+    success = true;
+    returned_value = field->value;
+
+__EXIT:
+    while (start_stack_index != S_GetRuntimeStackSize(interpreter))
+        S_PopRuntimeStackValue(interpreter);
+    if (success)
+    {
+        S_PushRuntimeStackValue(interpreter, returned_value);
+    }
+
+    return success;
+}
+
 bool S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Expression* exp)
 {
     DCHECK(interpreter != 0);
@@ -1143,6 +1181,10 @@ bool S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Expression* e
 
     case EXPRESSION_TYPE_SUBSCRIPT:
         success = S_Eval_Expression_Subscript(interpreter, (struct S_Expression_Subscript*)exp);
+        break;
+
+    case EXPRESSION_TYPE_DOT:
+        success = S_Eval_Expression_Dot(interpreter, (struct S_Expression_Dot*)exp);
         break;
 
     default:
