@@ -30,8 +30,9 @@
 <INITIAL>","  |
 <INITIAL>"^"  |
 <INITIAL>"["  |
-<INITIAL>"]"  |
-<INITIAL>\.   {yylloc = S_GetSrcLineNo(interpreter); return yytext[0];}
+<INITIAL>"]"  {yylloc = S_GetSrcLineNo(interpreter); return yytext[0];}
+
+<INITIAL>\.   {yylloc = S_GetSrcLineNo(interpreter); return DOT;}
 
 <INITIAL>">"  {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_G; return CMP;}
 <INITIAL>">=" {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_GE; return CMP;}

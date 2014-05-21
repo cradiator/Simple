@@ -39,7 +39,7 @@
 %token<string>   STRING
 %token<cmp_type> CMP
 %token<rel_type> REL
-%token RETURN GLOBAL FUNCTION WHILE IF ELSE ELIF NIL TRUE FALSE
+%token RETURN GLOBAL FUNCTION WHILE IF ELSE ELIF NIL TRUE FALSE DOT
 %token ERROR_LEXICAL_MARK
 
 %left '.'
@@ -127,20 +127,19 @@ mul_div : mul_div '*' factor {$$ = (struct S_Expression*)S_CreateExpressionOp2(i
         | factor {$$ = $1;}
         ;
 
-factor : factor '^' term {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_FACTOR, $1, $3);}
-       | factor '^' func_call {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_FACTOR, $1, $3);}
-       | postfix {$$ = $1;}
+factor : factor '^' func_call {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_FACTOR, $1, $3);}
+       | func_call {$$ = $1;}
        ;
 
-func_call : postfix '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
-          | func_def '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
+func_call : func_def '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
           | func_call '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
+          | postfix {$$ = $1;}
           ;
 
 
 postfix : term {$$ = $1;}
         | postfix '[' expr ']' {$$ = (struct S_Expression*)S_CreateExpressionSubscript(interpreter, $1, $3);}
-        | postfix '.' SYMBOL {$$ = (struct S_Expression*)S_CreateExpressionDot(interpreter, $1, (struct S_Expression_Symbol*)$3);}
+        | postfix DOT SYMBOL {$$ = (struct S_Expression*)S_CreateExpressionDot(interpreter, $1, S_CreateExpressionSymbol(interpreter, $3));}
         ;
 
 term : INTEGER {$$ = (struct S_Expression*)S_CreateExpressionInteger(interpreter, $1);}

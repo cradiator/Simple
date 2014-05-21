@@ -87,8 +87,6 @@ struct S_Value_Array {
 enum {
     SCRIPT_FUNCTION,
     NATIVE_FUNCTION,
-//     SCRIPT_METHOD,
-//     NATIVE_METHOD,
 };
 
 #ifdef __cplusplus

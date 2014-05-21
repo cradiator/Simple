@@ -725,33 +725,8 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
     int start_stack_index = S_GetRuntimeStackSize(interpreter);
 
     // Get function pointer.
-    if (exp->fn->header.type == EXPRESSION_TYPE_SYMBOL)
-    {
-        struct S_Expression_Symbol* exp_symbol = (struct S_Expression_Symbol*)exp->fn;
-        // function call using symbol always search global scope.
-        struct S_Local_Variables* variable = S_ContextFindVariable(interpreter, 
-                                                                   exp_symbol->symbol,
-                                                                   false,   // search global
-                                                                   false);  // not create
-        if (variable != 0)
-        {
-            S_PushRuntimeStackValue(interpreter, variable->value);
-            success = true;
-        }
-        else
-        {
-            ERR_Print(ERR_LEVEL_ERROR,
-                      "Line %d: symbol %s not found",
-                      exp->fn->header.lineno,
-                      exp_symbol->symbol);
-            success = false;
-        }
-    }
-    else
-    {
-        success = S_Eval_Expression(interpreter, exp->fn);
-    }
-
+    success = S_Eval_Expression(interpreter, exp->fn);
+    
     if (!success)
         return success;
 
@@ -767,11 +742,26 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
         return false;
     }
 
-    // Evaluate the function body.
     struct S_Value* returned_value = 0;
     struct S_Value_Function* function = (struct S_Value_Function*)function_value;
     struct S_Value** value_array = 0;
     bool has_pushed_contenxt = false;
+
+    // is a class method?
+    bool is_method = false;
+    struct S_Value* class_instance = 0;
+    if (exp->fn->header.type == EXPRESSION_TYPE_DOT)
+    {
+        is_method = true;
+        struct S_Expression_Dot* dot = (struct S_Expression_Dot*)exp->fn;
+        success = S_Eval_Expression(interpreter, dot->instance);
+        if (!success)
+            goto __EXIT;
+
+        class_instance = S_PeekRuntimeStackValue(interpreter, 0);
+    }
+
+    // Evaluate the function body.
     if (function->type == NATIVE_FUNCTION)
     {
         struct S_Expression_List* current_exp_list = exp->param;
@@ -783,7 +773,10 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
             S_ContextPush(interpreter);
             has_pushed_contenxt = true;
             unsigned int prev_stack_count = S_GetRuntimeStackSize(interpreter);
-            success = native_ptr(interpreter, 0, 0);
+            if (is_method)
+                success = native_ptr(interpreter, &class_instance, 1);
+            else
+                success = native_ptr(interpreter, 0, 0);
             if (success)
             {
                 DCHECK(prev_stack_count + 1 == S_GetRuntimeStackSize(interpreter));
@@ -799,6 +792,11 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
         // non-empty paramter list.
         // count paramter
         int exp_count = 0;
+
+        // first element of a method is this pointer
+        if (is_method)
+            exp_count++;
+
         while (current_exp_list != 0)
         {
             exp_count++;
@@ -809,6 +807,14 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
         value_array = (struct S_Value**)malloc(sizeof(struct S_Value*) * exp_count);
         current_exp_list = exp->param;
         int current_param_index = 0;
+
+        // class method call, the first parameter is this pointer.
+        if (is_method)
+        {
+            value_array[current_param_index] = class_instance;
+            current_param_index++;
+        }
+
         while (current_exp_list != 0)
         {
             success = S_Eval_Expression(interpreter, current_exp_list->exp);
@@ -903,6 +909,15 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
             variable->value = value_array[current_index];
             current_param_list = current_param_list->next;
             current_index++;
+        }
+
+        if (is_method)
+        {
+            struct S_Local_Variables* variable = S_ContextFindVariable(interpreter,
+                "this",
+                true,    // only local
+                true);   // create if not found.
+            variable->value = class_instance;
         }
 
         // eval function body.

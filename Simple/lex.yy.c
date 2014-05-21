@@ -755,200 +755,203 @@ case 15:
 case 16:
 #line 33 "simple.l"
 case 17:
-#line 34 "simple.l"
+YY_RULE_SETUP
+#line 33 "simple.l"
+{yylloc = S_GetSrcLineNo(interpreter); return yytext[0];}
+	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 34 "simple.l"
-{yylloc = S_GetSrcLineNo(interpreter); return yytext[0];}
+#line 35 "simple.l"
+{yylloc = S_GetSrcLineNo(interpreter); return DOT;}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 36 "simple.l"
+#line 37 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_G; return CMP;}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 37 "simple.l"
+#line 38 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_GE; return CMP;}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 38 "simple.l"
+#line 39 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_E; return CMP;}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 39 "simple.l"
+#line 40 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_L; return CMP;}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 40 "simple.l"
+#line 41 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_LE; return CMP;}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 41 "simple.l"
+#line 42 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); yylval.cmp_type = OP2_NE; return CMP;}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 43 "simple.l"
+#line 44 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); yylval.rel_type = OP2_AND; return REL;}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 44 "simple.l"
+#line 45 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); yylval.rel_type = OP2_OR; return REL;}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 46 "simple.l"
+#line 47 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); return FUNCTION;}
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 48 "simple.l"
+#line 49 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); return GLOBAL;}
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 50 "simple.l"
+#line 51 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); return RETURN;}
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 52 "simple.l"
+#line 53 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); return WHILE;}
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 54 "simple.l"
+#line 55 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); return IF;}
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 56 "simple.l"
+#line 57 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); return ELSE;}
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 58 "simple.l"
+#line 59 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); return ELIF;}
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 60 "simple.l"
+#line 61 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); return NIL;}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 62 "simple.l"
+#line 63 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); return TRUE;}
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 64 "simple.l"
+#line 65 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); return FALSE;}
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 67 "simple.l"
+#line 68 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); yylval.id = S_AllocateStringInParsingStorage(interpreter, yytext); return SYMBOL;}
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 69 "simple.l"
+#line 70 "simple.l"
 {S_IncSrcLineNo(interpreter);}
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 71 "simple.l"
+#line 72 "simple.l"
 {}
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 73 "simple.l"
+#line 74 "simple.l"
 {yylloc = S_GetSrcLineNo(interpreter); S_OpenString(interpreter); BEGIN STRING_CONTENT;}
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 74 "simple.l"
+#line 75 "simple.l"
 {yylval.string = S_CloseString(interpreter); BEGIN INITIAL; return STRING;}
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 75 "simple.l"
+#line 76 "simple.l"
 {S_AddStringChar(interpreter, '\n'); S_IncSrcLineNo(interpreter);}
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 76 "simple.l"
+#line 77 "simple.l"
 {S_AddStringChar(interpreter, '\"');} 
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 77 "simple.l"
+#line 78 "simple.l"
 {S_AddStringChar(interpreter, '\t');}
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 78 "simple.l"
+#line 79 "simple.l"
 {S_AddStringChar(interpreter, '\n');}
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 79 "simple.l"
+#line 80 "simple.l"
 {S_AddStringChar(interpreter, '\\');}
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 80 "simple.l"
+#line 81 "simple.l"
 {S_AddStringChar(interpreter, yytext[0]);}
 	YY_BREAK
 case YY_STATE_EOF(STRING_CONTENT):
-#line 81 "simple.l"
+#line 82 "simple.l"
 {yyerror(interpreter, "Unclosing quote"); return ERROR_LEXICAL_MARK;}
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 83 "simple.l"
+#line 84 "simple.l"
 {BEGIN COMMENT;}
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 84 "simple.l"
+#line 85 "simple.l"
 {BEGIN COMMENT;}
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 85 "simple.l"
+#line 86 "simple.l"
 {S_IncSrcLineNo(interpreter); BEGIN INITIAL;}
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 86 "simple.l"
+#line 87 "simple.l"
 {}
 	YY_BREAK
 case YY_STATE_EOF(COMMENT):
-#line 87 "simple.l"
+#line 88 "simple.l"
 {return -1;}
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
-#line 89 "simple.l"
+#line 90 "simple.l"
 {return -1;}
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 90 "simple.l"
+#line 91 "simple.l"
 {yyerror(interpreter, "Invalid lexical mark 0x%x.", yytext[0]); return ERROR_LEXICAL_MARK;}
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 92 "simple.l"
+#line 93 "simple.l"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
-#line 952 "lex.yy.c"
+#line 955 "lex.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -1830,6 +1833,6 @@ int main()
 	return 0;
 	}
 #endif
-#line 92 "simple.l"
+#line 93 "simple.l"
 
 

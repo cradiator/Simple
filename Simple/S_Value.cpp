@@ -6,13 +6,15 @@
 #include <vector>
 #include <string>
 
-void InitializeValueHeader(struct S_Interpreter* interpreter, struct S_Value_Header* header, int type)
+bool S_NativePrint(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count);
+
+void InitializeValueHeader(struct S_Interpreter* interpreter, struct S_Value* value, int type)
 {
-    DCHECK(header != 0);
+    DCHECK(value != 0);
     DCHECK(type >= VALUE_TYPE_MIN && type < VALUE_TYPE_MAX);
 
-    header->type = type;
-    header->field_list = 0;
+    value->header.type = type;
+    value->header.field_list = 0;
 }
 
 struct S_Value_Nil* S_CreateValueNil(struct S_Interpreter* interpreter)
@@ -21,7 +23,7 @@ struct S_Value_Nil* S_CreateValueNil(struct S_Interpreter* interpreter)
         (struct S_Value_Nil*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_Nil));
 
     DCHECK(v != 0);
-    InitializeValueHeader(interpreter, &v->header, VALUE_TYPE_NIL);
+    InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_NIL);
 
     return v;
 }
@@ -33,7 +35,7 @@ struct S_Value_True* S_CreateValueTrue(struct S_Interpreter* interpreter)
         (struct S_Value_True*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_True));
 
     DCHECK(v != 0);
-    InitializeValueHeader(interpreter, &v->header, VALUE_TYPE_TRUE);
+    InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_TRUE);
 
     return v;
 }
@@ -44,7 +46,7 @@ struct S_Value_False* S_CreateValueFalse(struct S_Interpreter* interpreter)
         (struct S_Value_False*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_False));
 
     DCHECK(v != 0);
-    InitializeValueHeader(interpreter, &v->header, VALUE_TYPE_FALSE);
+    InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_FALSE);
 
     return v;
 }
@@ -55,7 +57,7 @@ struct S_Value_Integer* S_CreateValueInteger(struct S_Interpreter* interpreter, 
         (struct S_Value_Integer*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_Integer));
     DCHECK(v != 0);
 
-    InitializeValueHeader(interpreter, &v->header, VALUE_TYPE_INTEGER);
+    InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_INTEGER);
     v->value = value;
     return v;
 }
@@ -66,7 +68,7 @@ struct S_Value_Double* S_CreateValueDouble(struct S_Interpreter* interpreter, do
         (struct S_Value_Double*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_Double));
     DCHECK(v != 0);
 
-    InitializeValueHeader(interpreter, &v->header, VALUE_TYPE_DOUBLE);
+    InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_DOUBLE);
     v->value = value;
     return v;
 }
@@ -79,9 +81,10 @@ struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, co
         (struct S_Value_String*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_String));
     DCHECK(v != 0);
 
-    InitializeValueHeader(interpreter, &v->header, VALUE_TYPE_STRING);
+    InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_STRING);
     v->string = MM_CopyString(interpreter->RunningStorage, string);
     v->length = strlen(v->string);
+    S_Set_Value_Field(interpreter, (struct S_Value*)v, "print", (struct S_Value*)S_CreateValueNativeFunction(interpreter, S_NativePrint));
     return v;
 }
 
@@ -92,7 +95,7 @@ struct S_Value_Symbol* S_CreateValueSymbol(struct S_Interpreter* interpreter, co
         (struct S_Value_Symbol*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_Symbol));
     DCHECK(v != 0);
 
-    InitializeValueHeader(interpreter, &v->header, VALUE_TYPE_SYMBOL);
+    InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_SYMBOL);
     v->symbol = MM_CopyString(interpreter->RunningStorage, symbol);
     return v;
 }
@@ -103,7 +106,7 @@ struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter
         (struct S_Value_Function*)MM_Malloc(interpreter->RunningStorage, sizeof(S_Value_Function));
     DCHECK(v != 0);
 
-    InitializeValueHeader(interpreter, &v->header, VALUE_TYPE_FUNCTION);
+    InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_FUNCTION);
     v->type = SCRIPT_FUNCTION;
     v->u.script.param_list = param_list;
     v->u.script.code_block = code_block;
@@ -118,7 +121,7 @@ struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* inter
         (struct S_Value_Function*)MM_Malloc(interpreter->RunningStorage, sizeof(S_Value_Function));
     DCHECK(v != 0);
 
-    InitializeValueHeader(interpreter, &v->header, VALUE_TYPE_FUNCTION);
+    InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_FUNCTION);
     v->type = NATIVE_FUNCTION;
     v->u.native = function;
 
@@ -146,7 +149,7 @@ struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, stru
             array[i] = (struct S_Value*)S_CreateValueNil(interpreter);
     }
 
-    InitializeValueHeader(interpreter, &v->header, VALUE_TYPE_ARRAY);
+    InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_ARRAY);
     v->value_array = array;
     v->array_size = array_size;
     return v;
@@ -221,6 +224,16 @@ void S_MarkValue(struct S_Interpreter* interpreter, struct S_Value* value)
             MM_MarkGCMemory(interpreter->RunningStorage, s->value_array);
         for(unsigned int i = 0; i < s->array_size; ++i)
             S_MarkValue(interpreter, (s->value_array)[i]);
+    }
+
+    // mark field list
+    struct S_Field_List* field = value->header.field_list;
+    while (field != 0)
+    {
+        MM_MarkGCMemory(interpreter->RunningStorage, field);
+        S_MarkValue(interpreter, (struct S_Value*)field->name);
+        S_MarkValue(interpreter, field->value);
+        field = field->next;
     }
 
     MM_MarkGCMemory(interpreter->RunningStorage, value);
