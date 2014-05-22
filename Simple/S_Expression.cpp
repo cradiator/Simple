@@ -210,6 +210,26 @@ struct S_Expression_Subscript* S_CreateExpressionSubscript(struct S_Interpreter*
     e->index = index;
     return e;
 }
+
+struct S_Expression_Dot* S_CreateExpressionDot(struct S_Interpreter* interpreter,
+                                               struct S_Expression* instance,
+                                               struct S_Expression_Symbol* field)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(instance != 0);
+    DCHECK(field != 0);
+
+    struct S_Expression_Dot *e = 
+        (struct S_Expression_Dot*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                     sizeof(struct S_Expression_Dot));
+    DCHECK(e != 0);
+
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_DOT);
+    e->instance = instance;
+    e->field = field;
+    return e;
+}
+
 //// End of Expression ////
 
 //// Expression List ////
@@ -390,6 +410,7 @@ struct S_Statement_While* S_CreateStatementWhile(struct S_Interpreter* interpret
 struct S_Statement_If* S_CreateStatementIf(struct S_Interpreter* interpreter,
                                            struct S_Expression* condition,
                                            struct S_Code_Block* body,
+                                           struct S_Elif_List*  elif_list,
                                            struct S_Code_Block* else_body)
 {
     DCHECK(interpreter != 0);
@@ -404,6 +425,7 @@ struct S_Statement_If* S_CreateStatementIf(struct S_Interpreter* interpreter,
     s->header.type = STATEMENT_TYPE_IF;
     s->condition = condition;
     s->body = body;
+    s->elif_list = elif_list;
     s->else_body = else_body;
     return s;
 }
@@ -479,5 +501,47 @@ struct S_Code_Block* S_CreateCodeBlock(struct S_Interpreter* interpreter,
 
     return code_block;
 }
-
 //// End of Clode Block ////
+
+//// Elif List ////
+struct S_Elif_List* S_CreateElifList(struct S_Interpreter* interpreter,
+                                     struct S_Expression* condition,
+                                      struct S_Code_Block* body)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(condition != 0);
+    DCHECK(body != 0);
+
+    struct S_Elif_List* elif_list = 
+        (struct S_Elif_List*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                sizeof(struct S_Elif_List));
+    DCHECK(elif_list != 0);
+
+    elif_list->next = 0;
+    elif_list->condition = condition;
+    elif_list->body = body;
+
+    return elif_list;
+}
+
+void S_AddElifList(struct S_Interpreter* interpreter,
+                   struct S_Elif_List* elif_list,
+                   struct S_Expression* condition,
+                   struct S_Code_Block* body)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(elif_list != 0);
+    DCHECK(condition != 0);
+    DCHECK(body != 0);
+
+    // append new node to the end.
+    struct S_Elif_List* last_node = elif_list;
+    while (last_node->next != 0)
+        last_node = last_node->next;
+
+    struct S_Elif_List* new_node = S_CreateElifList(interpreter,
+                                                    condition,
+                                                    body);
+    last_node->next = new_node;
+}
+//// End of Elif List ////

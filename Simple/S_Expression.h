@@ -5,6 +5,7 @@ struct S_Expression_List;
 struct S_Parameter_List;
 struct S_Statement_List;
 struct S_Code_Block;
+struct S_Elif_List;
 struct S_Expression_Header;
 
 //// End od Declearation ////
@@ -24,6 +25,7 @@ enum {
     EXPRESSION_TYPE_OP2,
     EXPRESSION_TYPE_ARRAY,
     EXPRESSION_TYPE_SUBSCRIPT,
+    EXPRESSION_TYPE_DOT,
 };
 
 enum {
@@ -122,6 +124,12 @@ struct S_Expression_Subscript {
     struct S_Expression* index;
 };
 
+struct S_Expression_Dot {
+    struct S_Expression_Header header;
+    struct S_Expression* instance;
+    struct S_Expression_Symbol* field;
+};
+
 
 EXTERN_C struct S_Expression_Nil* S_CreateExpressionNil(struct S_Interpreter* interpreter);
 
@@ -160,6 +168,10 @@ EXTERN_C struct S_Expression_Array* S_CreateExpressionArray(struct S_Interpreter
 EXTERN_C struct S_Expression_Subscript* S_CreateExpressionSubscript(struct S_Interpreter* interpreter,
                                                                     struct S_Expression* instance,
                                                                     struct S_Expression* index);
+
+EXTERN_C struct S_Expression_Dot* S_CreateExpressionDot(struct S_Interpreter* interpreter,
+                                                        struct S_Expression* instance,
+                                                        struct S_Expression_Symbol* field);
 
 //// End of Expression ////
 
@@ -245,6 +257,7 @@ struct S_Statement_If {
     struct S_Statement_Header header;
     struct S_Expression* condition;
     struct S_Code_Block* body;
+    struct S_Elif_List*  elif_list;
     struct S_Code_Block* else_body;
 };
 
@@ -270,6 +283,7 @@ EXTERN_C struct S_Statement_While* S_CreateStatementWhile(struct S_Interpreter* 
 EXTERN_C struct S_Statement_If* S_CreateStatementIf(struct S_Interpreter* interpreter,
                                            struct S_Expression* condition,
                                            struct S_Code_Block* body,
+                                           struct S_Elif_List*  elif_list,
                                            struct S_Code_Block* else_body);
 
 //// End of Statement ////
@@ -304,4 +318,23 @@ EXTERN_C struct S_Code_Block* S_CreateCodeBlock(struct S_Interpreter* interprete
                                        struct S_Statement_List* stat_list);
 
 //// End of Clode Block ////
+
+//// else if list ////
+struct S_Elif_List {
+    struct S_Elif_List* next;
+    struct S_Expression* condition;
+    struct S_Code_Block* body;
+};
+
+EXTERN_C struct S_Elif_List* S_CreateElifList(struct S_Interpreter* interpreter,
+                                              struct S_Expression* condition,
+                                              struct S_Code_Block* body);
+
+EXTERN_C void S_AddElifList(struct S_Interpreter* interpreter,
+                            struct S_Elif_List* elif_list,
+                            struct S_Expression* condition,
+                            struct S_Code_Block* body);
+
+
+//// else if list ////
 

@@ -234,6 +234,17 @@ void MM_MarkGCMemory(struct MM_GCStorage*, void* p)
     mem->flag |= GC_FLAG_MARKED;
 }
 
+bool MM_IsGCMemoryMarked(struct MM_GCStorage* storage, void* p)
+{
+    struct GCMemory* mem = (struct GCMemory*)((char*)p - sizeof(struct GCMemory));
+    CheckGCMemoryValid(mem);
+
+    if ((mem->flag & GC_FLAG_MARKED) != 0)
+        return true;
+    else
+        return false;
+}
+
 void MM_UnmarkGCStorage(struct MM_GCStorage* storage)
 {
     struct GCMemory* mem = storage->start;

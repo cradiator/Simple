@@ -30,6 +30,7 @@
   struct S_Code_Block*      code_block;
   struct S_Expression_List* expression_list;
   struct S_Parameter_List*  parameter_list;
+  struct S_Elif_List*       elif_list;
 }
 
 %token<int_number>    INTEGER
@@ -38,7 +39,7 @@
 %token<string>   STRING
 %token<cmp_type> CMP
 %token<rel_type> REL
-%token RETURN GLOBAL FUNCTION WHILE IF ELSE NIL TRUE FALSE
+%token RETURN GLOBAL FUNCTION WHILE IF ELSE ELIF NIL TRUE FALSE DOT
 %token ERROR_LEXICAL_MARK
 
 %left '.'
@@ -55,6 +56,7 @@
 %type<code_block> block
 %type<parameter_list> param_list
 %type<expression_list> expr_list
+%type<elif_list> else_if_list
 
 %start start
 
@@ -80,13 +82,19 @@ expr_list : expr_list ',' expr {S_AddExpressionToExpList(interpreter, $1, $3); $
           | {$$ = S_CreateExpList(interpreter, 0);}
           ;
 
+else_if_list : else_if_list ELIF '(' expr ')'block {S_AddElifList(interpreter, $1, $4, $6); $$ = $1;}
+             | ELIF '(' expr ')'block {$$ = S_CreateElifList(interpreter, $3, $5);}
+             ;
+
 stat : expr ';' {$$ = (struct S_Statement*)S_CreateStatementExpression(interpreter, $1);}
      | GLOBAL SYMBOL ';' {$$ = (struct S_Statement*)S_CreateStatementGlobal(interpreter, S_CreateExpressionSymbol(interpreter, $2));}
      | RETURN expr ';' {$$ = (struct S_Statement*)S_CreateStatementReturn(interpreter, $2);}
      | FUNCTION SYMBOL '(' param_list ')' block {$$ = (struct S_Statement*)S_CreateStatementFunctionDefine(interpreter, S_CreateExpressionSymbol(interpreter, $2), $4, $6);}
      | WHILE '(' expr ')' block {$$ = (struct S_Statement*)S_CreateStatementWhile(interpreter, $3, $5);}
-     | IF '(' expr ')' block {$$ = (struct S_Statement*)S_CreateStatementIf(interpreter, $3, $5, 0);}
-     | IF '(' expr ')' block ELSE block {$$ = (struct S_Statement*)S_CreateStatementIf(interpreter, $3, $5, $7);}
+     | IF '(' expr ')' block {$$ = (struct S_Statement*)S_CreateStatementIf(interpreter, $3, $5, 0, 0);}
+     | IF '(' expr ')' block ELSE block {$$ = (struct S_Statement*)S_CreateStatementIf(interpreter, $3, $5, 0, $7);}
+     | IF '(' expr ')' block else_if_list {$$ = (struct S_Statement*)S_CreateStatementIf(interpreter, $3, $5, $6, 0);}
+     | IF '(' expr ')' block else_if_list ELSE block {$$ = (struct S_Statement*)S_CreateStatementIf(interpreter, $3, $5, $6, $8);}
      ;
 
 expr : assign {$$ = $1;}
@@ -100,12 +108,6 @@ assign : assign '=' func_def {$$ = (struct S_Expression*)S_CreateExpressionOp2(i
 
 func_def : FUNCTION '(' param_list ')' block {$$ = (struct S_Expression*)S_CreateExpressionFunctionDefine(interpreter, $3, $5);}
          ;
-
-
-func_call : term '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
-          | func_def '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
-          | func_call '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
-          ;
 
 rel : rel REL cmp {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, $2, $1, $3);}
     | cmp {$$ = $1;}
@@ -125,15 +127,19 @@ mul_div : mul_div '*' factor {$$ = (struct S_Expression*)S_CreateExpressionOp2(i
         | factor {$$ = $1;}
         ;
 
-factor : factor '^' term {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_FACTOR, $1, $3);}
-       | factor '^' func_call {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_FACTOR, $1, $3);}
-       | postfix {$$ = $1;}
+factor : factor '^' func_call {$$ = (struct S_Expression*)S_CreateExpressionOp2(interpreter, OP2_FACTOR, $1, $3);}
+       | func_call {$$ = $1;}
        ;
 
+func_call : func_def '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
+          | func_call '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpressionFunctionCall(interpreter, $1, $3);}
+          | postfix {$$ = $1;}
+          ;
+
+
 postfix : term {$$ = $1;}
-        | func_call {$$ = $1;}
         | postfix '[' expr ']' {$$ = (struct S_Expression*)S_CreateExpressionSubscript(interpreter, $1, $3);}
-        | postfix '.' SYMBOL {}
+        | postfix DOT SYMBOL {$$ = (struct S_Expression*)S_CreateExpressionDot(interpreter, $1, S_CreateExpressionSymbol(interpreter, $3));}
         ;
 
 term : INTEGER {$$ = (struct S_Expression*)S_CreateExpressionInteger(interpreter, $1);}

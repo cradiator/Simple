@@ -41,6 +41,12 @@ void S_GC(struct S_Interpreter* interpreter)
     // mark runtime stack
     MarkRuntimeStack(interpreter);
 
+    if (interpreter->NativePrint)
+        S_MarkValue(interpreter, (struct S_Value*)interpreter->NativePrint);
+
+    if (interpreter->NativeToString)
+        S_MarkValue(interpreter, (struct S_Value*)interpreter->NativeToString);
+
     // sweep
     MM_SweepGCMemory(interpreter->RunningStorage);
 }
@@ -56,69 +62,55 @@ void S_GCIfNeed(struct S_Interpreter* interpreter)
 }
 
 
-struct S_Value* S_NativePrint(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count)
+bool S_NativePrint(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count)
 {
-    if (param_count != 1)
-        return 0;
 
-    unsigned int i = 0;
-    struct S_Value* param = param_array[0];
-    switch (param->header.type)
+    for (int i = 0; i < param_count; ++i)
     {
-    case VALUE_TYPE_STRING:
-        printf("%s\n", ((struct S_Value_String*)param)->string);
-        break;
-
-    case VALUE_TYPE_INTEGER:
-        printf("%d\n", ((struct S_Value_Integer*)param)->value);
-        break;
-
-    case VALUE_TYPE_DOUBLE:
-        printf("%lf\n", ((struct S_Value_Double*)param)->value);
-        break;
-
-    case VALUE_TYPE_TRUE:
-        printf("true\n");
-        break;
-
-    case VALUE_TYPE_FALSE:
-        printf("false\n");
-        break;
-
-    case VALUE_TYPE_NIL:
-        printf("nil\n");
-        break;
-
-        /*
-    case VALUE_TYPE_ARRAY:
-        printf("[");
-        for (i = 0; i < ((struct S_Value_Array*)param)->array_size; ++i)
-        {
-            S_NativePrint(interpreter, && (((struct S_Value_Array*)param)->value_array[i]), 1);
-        }
-        printf("]");
-        break;
-        */
-    default:
-        printf("type %s\n", VALUE_NAME[param->header.type]);
-        break;
+        struct S_Value_String* str = S_ConvertValueToString(interpreter, param_array[i]);
+        printf(str->string);
     }
 
-    return (struct S_Value*)S_CreateValueNil(interpreter);
+    S_PushRuntimeStackValue(interpreter, (struct S_Value*)S_CreateValueInteger(interpreter, param_count));
+    return true;
 }
 
-struct S_Value* S_NativeGC(struct S_Interpreter* interpreter, struct S_Value** /*param_array*/, int param_count)
+bool S_NativeToString(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count)
+{
+    if (param_count != 1)
+        return false;
+
+    S_PushRuntimeStackValue(interpreter, (struct S_Value*)S_ConvertValueToString(interpreter, param_array[0]));
+    return true;
+}
+
+bool S_NativeArray(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count)
+{
+    if (param_count != 1 || param_array[0]->header.type != VALUE_TYPE_INTEGER)
+    {
+        ERR_Print(ERR_LEVEL_ERROR,
+            "function array only take 1 integer parameter");
+        return false;
+    }
+
+    struct S_Value_Integer* value_integer = (struct S_Value_Integer*)(param_array[0]);
+    S_PushRuntimeStackValue(interpreter, (struct S_Value*)S_CreateValueArray(interpreter, 0, (unsigned int)value_integer->value));
+    return true;
+}
+
+bool S_NativeGC(struct S_Interpreter* interpreter, struct S_Value** /*param_array*/, int param_count)
 {
     if (param_count != 0)
     {
         ERR_Print(ERR_LEVEL_ERROR,
             "native function gc have no parameter.");
-        return 0;
+        return false;
     }
 
     S_GC(interpreter);
 
-    return (struct S_Value*)S_CreateValueNil(interpreter);
+    S_PushRuntimeStackValue(interpreter, (struct S_Value*)S_CreateValueNil(interpreter));
+    return true;
 }
 
 int CompileInternal(struct S_Interpreter* interpreter)
@@ -154,9 +146,28 @@ struct S_Interpreter* S_NewInterpreter()
     // Create runtime stack.
     InitRuntimeStackValue(s);
 
-    // Push native function.
-    S_AddNativeFunction(s, "Print", S_NativePrint);
-    S_AddNativeFunction(s, "GC", S_NativeGC);
+    // Push base native function.
+    S_AddNativeFunction(s, "print", S_NativePrint);
+    S_AddNativeFunction(s, "to_string", S_NativeToString);
+
+    struct S_Local_Variables* variable = 0;
+    variable = S_ContextFindVariable(s, "print", true, false);
+    DCHECK(variable != 0);
+    s->NativePrint = (struct S_Value_Function*)variable->value;
+
+    variable = S_ContextFindVariable(s, "to_string", true, false);
+    DCHECK(variable != 0);
+    s->NativeToString = (struct S_Value_Function*)variable->value;
+
+    S_Set_Value_Field(s, (struct S_Value*)s->NativePrint, "print", (struct S_Value*)s->NativePrint);
+    S_Set_Value_Field(s, (struct S_Value*)s->NativePrint, "to_string", (struct S_Value*)s->NativeToString);
+
+    S_Set_Value_Field(s, (struct S_Value*)s->NativeToString, "print", (struct S_Value*)s->NativePrint);
+    S_Set_Value_Field(s, (struct S_Value*)s->NativeToString, "to_string", (struct S_Value*)s->NativeToString);
+
+    // Push common native function.
+    S_AddNativeFunction(s, "gc", S_NativeGC);
+    S_AddNativeFunction(s, "array", S_NativeArray);
 	return s;
 }
 
@@ -342,7 +353,7 @@ void MarkRuntimeStack(struct S_Interpreter* interpreter)
         return;
     }
 
-    for(int i = 0; i < stack->current_size; ++i)
+    for(unsigned int i = 0; i < stack->current_size; ++i)
     {
         S_MarkValue(interpreter, stack->stack[i]);
     }

@@ -802,33 +802,8 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
     int start_stack_index = S_GetRuntimeStackSize(interpreter);
 
     // Get function pointer.
-    if (exp->fn->header.type == EXPRESSION_TYPE_SYMBOL)
-    {
-        struct S_Expression_Symbol* exp_symbol = (struct S_Expression_Symbol*)exp->fn;
-        // function call using symbol always search global scope.
-        struct S_Local_Variables* variable = S_ContextFindVariable(interpreter, 
-                                                                   exp_symbol->symbol,
-                                                                   false,   // search global
-                                                                   false);  // not create
-        if (variable != 0)
-        {
-            S_PushRuntimeStackValue(interpreter, variable->value);
-            success = true;
-        }
-        else
-        {
-            ERR_Print(ERR_LEVEL_ERROR,
-                      "Line %d: symbol %s not found",
-                      exp->fn->header.lineno,
-                      exp_symbol->symbol);
-            success = false;
-        }
-    }
-    else
-    {
-        success = S_Eval_Expression(interpreter, exp->fn);
-    }
-
+    success = S_Eval_Expression(interpreter, exp->fn);
+    
     if (!success)
         return success;
 
@@ -844,11 +819,26 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
         return false;
     }
 
-    // Evaluate the function body.
     struct S_Value* returned_value = 0;
     struct S_Value_Function* function = (struct S_Value_Function*)function_value;
     struct S_Value** value_array = 0;
     bool has_pushed_contenxt = false;
+
+    // is a class method?
+    bool is_method = false;
+    struct S_Value* class_instance = 0;
+    if (exp->fn->header.type == EXPRESSION_TYPE_DOT)
+    {
+        is_method = true;
+        struct S_Expression_Dot* dot = (struct S_Expression_Dot*)exp->fn;
+        success = S_Eval_Expression(interpreter, dot->instance);
+        if (!success)
+            goto __EXIT;
+
+        class_instance = S_PeekRuntimeStackValue(interpreter, 0);
+    }
+
+    // Evaluate the function body.
     if (function->type == NATIVE_FUNCTION)
     {
         struct S_Expression_List* current_exp_list = exp->param;
@@ -859,13 +849,31 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
         {
             S_ContextPush(interpreter);
             has_pushed_contenxt = true;
-            returned_value = native_ptr(interpreter, 0, 0);
+            unsigned int prev_stack_count = S_GetRuntimeStackSize(interpreter);
+            if (is_method)
+                success = native_ptr(interpreter, &class_instance, 1);
+            else
+                success = native_ptr(interpreter, 0, 0);
+            if (success)
+            {
+                DCHECK(prev_stack_count + 1 == S_GetRuntimeStackSize(interpreter));
+                returned_value = S_PopRuntimeStackValue(interpreter);
+            }
+            else
+            {
+                DCHECK(prev_stack_count == S_GetRuntimeStackSize(interpreter));
+            }
             goto __EXIT;
         }
 
         // non-empty paramter list.
         // count paramter
         int exp_count = 0;
+
+        // first element of a method is this pointer
+        if (is_method)
+            exp_count++;
+
         while (current_exp_list != 0)
         {
             exp_count++;
@@ -876,6 +884,14 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
         value_array = (struct S_Value**)malloc(sizeof(struct S_Value*) * exp_count);
         current_exp_list = exp->param;
         int current_param_index = 0;
+
+        // class method call, the first parameter is this pointer.
+        if (is_method)
+        {
+            value_array[current_param_index] = class_instance;
+            current_param_index++;
+        }
+
         while (current_exp_list != 0)
         {
             success = S_Eval_Expression(interpreter, current_exp_list->exp);
@@ -891,9 +907,18 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
 
         // Call native function.
         S_ContextPush(interpreter);
+        unsigned int prev_stack_count = S_GetRuntimeStackSize(interpreter);
         has_pushed_contenxt = true;
-        returned_value = native_ptr(interpreter, value_array, exp_count);
-        success = true;
+        success = native_ptr(interpreter, value_array, exp_count);
+        if (success)
+        {
+            DCHECK(prev_stack_count + 1 == S_GetRuntimeStackSize(interpreter));
+            returned_value = S_PopRuntimeStackValue(interpreter);
+        }
+        else
+        {
+            DCHECK(prev_stack_count == S_GetRuntimeStackSize(interpreter));
+        }
     }
     else if (function->type == SCRIPT_FUNCTION)
     {
@@ -961,6 +986,15 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
             variable->value = value_array[current_index];
             current_param_list = current_param_list->next;
             current_index++;
+        }
+
+        if (is_method)
+        {
+            struct S_Local_Variables* variable = S_ContextFindVariable(interpreter,
+                "this",
+                true,    // only local
+                true);   // create if not found.
+            variable->value = class_instance;
         }
 
         // eval function body.
@@ -1142,6 +1176,45 @@ __EXIT:
     return success;
 }
 
+bool S_Eval_Expression_Dot(struct S_Interpreter* interpreter, struct S_Expression_Dot* exp)
+{
+    bool success = false;
+    unsigned int start_stack_index = S_GetRuntimeStackSize(interpreter);
+    struct S_Value* returned_value = 0;
+
+    success = S_Eval_Expression(interpreter, exp->instance);
+    if (!success)
+        goto __EXIT;
+
+    struct S_Value* instance = S_PeekRuntimeStackValue(interpreter, 0);
+
+    struct S_Field_List* field = S_Find_Value_Field(interpreter, instance, exp->field->symbol, false);
+    if (field == 0)
+    {
+        success = false;
+        ERR_Print(ERR_LEVEL_ERROR,
+            "Line %d: instance %s don't have field %s",
+            exp->instance->header.lineno,
+            VALUE_NAME[instance->header.type],
+            exp->field->symbol);
+        goto __EXIT;
+    }
+
+    DCHECK(field->value != 0);
+    success = true;
+    returned_value = field->value;
+
+__EXIT:
+    while (start_stack_index != S_GetRuntimeStackSize(interpreter))
+        S_PopRuntimeStackValue(interpreter);
+    if (success)
+    {
+        S_PushRuntimeStackValue(interpreter, returned_value);
+    }
+
+    return success;
+}
+
 bool S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Expression* exp)
 {
     DCHECK(interpreter != 0);
@@ -1201,6 +1274,10 @@ bool S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Expression* e
 
     case EXPRESSION_TYPE_SUBSCRIPT:
         success = S_Eval_Expression_Subscript(interpreter, (struct S_Expression_Subscript*)exp);
+        break;
+
+    case EXPRESSION_TYPE_DOT:
+        success = S_Eval_Expression_Dot(interpreter, (struct S_Expression_Dot*)exp);
         break;
 
     default:
@@ -1342,6 +1419,32 @@ bool S_Eval_Statement_If(struct S_Interpreter* interpreter, struct S_Statement_I
     {
         // Pop condition_result out.
         S_PopRuntimeStackValue(interpreter);
+        struct S_Elif_List* elif_list = stat->elif_list;
+        while (elif_list != 0)
+        {
+            success = S_Eval_Expression(interpreter, elif_list->condition);
+            if (!success)
+            {
+                goto __EXIT;
+            }
+
+            condition_result = S_PeekRuntimeStackValue(interpreter, 0);
+            if (condition_result->header.type == VALUE_TYPE_TRUE)
+            {
+                // Pop condition_result out.
+                S_PopRuntimeStackValue(interpreter);
+                success = S_Eval_Code_Block(interpreter, elif_list->body);
+                goto __EXIT;
+            }
+            else
+            {
+                // Pop condition_result out.
+                S_PopRuntimeStackValue(interpreter);
+            }
+
+            elif_list = elif_list->next;
+        }
+
         if (stat->else_body != 0)
             success = S_Eval_Code_Block(interpreter, stat->else_body);
         else
@@ -1358,6 +1461,7 @@ bool S_Eval_Statement_If(struct S_Interpreter* interpreter, struct S_Statement_I
         S_PopRuntimeStackValue(interpreter);
     }
 
+__EXIT:
     return success;
 }
 

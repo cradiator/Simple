@@ -26,6 +26,9 @@ char* MM_CopyStringInGCMemory(struct MM_GCStorage* storage, const char* string, 
 
 // For Mark-Sweep gc
 void MM_MarkGCMemory(struct MM_GCStorage* storage, void* p);
+#ifdef __cplusplus
+bool MM_IsGCMemoryMarked(struct MM_GCStorage* storage, void* p);
+#endif
 void MM_UnmarkGCStorage(struct MM_GCStorage* storage);
 void MM_SweepGCMemory(struct MM_GCStorage* storage);
 

@@ -4,7 +4,8 @@ struct S_Interpreter;
 struct S_Expression_Function_Define;
 
 enum {
-    VALUE_TYPE_NIL,
+    VALUE_TYPE_MIN,
+    VALUE_TYPE_NIL = VALUE_TYPE_MIN,
     VALUE_TYPE_TRUE,
     VALUE_TYPE_FALSE,
     VALUE_TYPE_INTEGER,
@@ -13,6 +14,7 @@ enum {
     VALUE_TYPE_SYMBOL,
     VALUE_TYPE_FUNCTION,
     VALUE_TYPE_ARRAY,
+    VALUE_TYPE_MAX,
 };
 
 __declspec(selectany) 
@@ -28,8 +30,15 @@ const char* VALUE_NAME[] = {
     "array",
 };
 
+struct S_Field_List {
+    struct S_Field_List* next;
+    char* name;
+    struct S_Value* value;
+};
+
 struct S_Value_Header {
     int type;
+    struct S_Field_List* field_list;
 };
 
 struct S_Value {
@@ -80,7 +89,8 @@ enum {
     NATIVE_FUNCTION,
 };
 
-typedef struct S_Value* (*S_NativeFunctionProto)(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count);
+#ifdef __cplusplus
+typedef bool (*S_NativeFunctionProto)(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count);
 
 struct S_Value_Function {
     struct S_Value_Header header;
@@ -93,6 +103,13 @@ struct S_Value_Function {
         } script;
     } u;
 };
+
+struct S_Field_List* S_Find_Value_Field(struct S_Interpreter* interpreter, struct S_Value* value, const char* field_name, bool create_if_not_exist);
+void S_Set_Value_Field(struct S_Interpreter* interpreter, struct S_Value* value, const char* field_name, struct S_Value* field_value);
+
+#else
+struct S_Value_Funtion;
+#endif
 
 // S_CreateValueXxx routine's returned value could be gabbage collected by default.
 // If you want to pin it in memeory, push it onto runtime stack or assign it in context variable. 
@@ -112,9 +129,14 @@ struct S_Value_Symbol* S_CreateValueSymbol(struct S_Interpreter* interpreter, co
 
 struct S_Value_Function* S_CreateValueFunction(struct S_Interpreter* interpreter, struct S_Parameter_List* param_list, struct S_Code_Block* code_block);
 
+#ifdef __cplusplus
 struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* interpreter, S_NativeFunctionProto function);
+#endif
 
+// if value_array is NULL, would create an array all of whose elements is S_Value_Nil.
 struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, struct S_Value** value_array, unsigned int array_size);
 
 // For mark-sweep process.
 void S_MarkValue(struct S_Interpreter* interpreter, struct S_Value* value);
+
+struct S_Value_String* S_ConvertValueToString(struct S_Interpreter* interpreter, struct S_Value* value);

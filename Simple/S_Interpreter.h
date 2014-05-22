@@ -33,6 +33,9 @@ struct S_Interpreter
     // GC-Collectable.
     struct S_Context* Context;
 
+    struct S_Value_Function* NativePrint;
+    struct S_Value_Function* NativeToString;
+
     void* RuntimeStack;
 
     // used by S_DoCompileFile.
