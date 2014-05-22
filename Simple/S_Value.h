@@ -3,7 +3,7 @@
 struct S_Interpreter;
 struct S_Expression_Function_Define;
 
-enum {
+enum S_Value_Type {
     VALUE_TYPE_MIN,
     VALUE_TYPE_NIL = VALUE_TYPE_MIN,
     VALUE_TYPE_TRUE,
@@ -37,7 +37,7 @@ struct S_Field_List {
 };
 
 struct S_Value_Header {
-    int type;
+    enum S_Value_Type type;
     struct S_Field_List* field_list;
 };
 

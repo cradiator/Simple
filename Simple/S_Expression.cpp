@@ -5,7 +5,7 @@
 #include "S_Interpreter.h"
 
 //// Expression /////
-void InitializeExpressionHeader(S_Interpreter* interpreter, S_Expression* exp, int type)
+void InitializeExpressionHeader(S_Interpreter* interpreter, S_Expression* exp, enum S_Expression_Type type)
 {
     exp->header.type = type;
     exp->header.lineno = S_GetSrcLineNo(interpreter);

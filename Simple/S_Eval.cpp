@@ -629,7 +629,9 @@ bool EvalAssign(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
 {
     DCHECK(exp->op == OP2_ASSIGN);
 
-    if (exp->exp1->header.type != EXPRESSION_TYPE_SYMBOL && exp->exp1->header.type != EXPRESSION_TYPE_SUBSCRIPT)
+    if (exp->exp1->header.type != EXPRESSION_TYPE_SYMBOL && 
+        exp->exp1->header.type != EXPRESSION_TYPE_SUBSCRIPT &&
+        exp->exp1->header.type != EXPRESSION_TYPE_DOT)
     {
         ERR_Print(ERR_LEVEL_ERROR,
                   "Line %d: %s is not an symbol or array, can not be assigned.",
@@ -657,7 +659,7 @@ bool EvalAssign(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
         variables->value = S_PeekRuntimeStackValue(interpreter, 0);
         success = true;
     }
-    else
+    else if (exp->exp1->header.type == EXPRESSION_TYPE_SUBSCRIPT)
     {
         // subscript array.
 
@@ -724,6 +726,23 @@ bool EvalAssign(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
 
         S_PopRuntimeStackValue(interpreter);    // pop index
         S_PopRuntimeStackValue(interpreter);    // pop instance
+        success = true;
+    }
+    else if (exp->exp1->header.type == EXPRESSION_TYPE_DOT)
+    {
+        struct S_Expression_Dot* exp_dot = (struct S_Expression_Dot*)exp->exp1;
+        success = S_Eval_Expression(interpreter, exp_dot->instance);
+        if (!success)
+        {
+            goto __EXIT;
+        }
+        struct S_Value* instance = S_PeekRuntimeStackValue(interpreter, 0);
+        struct S_Value* right_hand = S_PeekRuntimeStackValue(interpreter, 1);
+        struct S_Field_List* field = S_Find_Value_Field(interpreter, instance, exp_dot->field->symbol, true);
+        DCHECK(field != 0);
+        field->value = right_hand;
+
+        S_PopRuntimeStackValue(interpreter);    // pop instance out.
         success = true;
     }
 
@@ -800,9 +819,32 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
 {
     bool success = false;
     int start_stack_index = S_GetRuntimeStackSize(interpreter);
+    struct S_Value* returned_value = 0;
+    struct S_Value** value_array = 0;
+    bool has_pushed_contenxt = false;
 
     // Get function pointer.
-    success = S_Eval_Expression(interpreter, exp->fn);
+    if (exp->fn->header.type != EXPRESSION_TYPE_SYMBOL)
+    {
+        success = S_Eval_Expression(interpreter, exp->fn);
+    }
+    else
+    {
+        struct S_Expression_Symbol* func_symbol = (struct S_Expression_Symbol*)exp->fn;
+        struct S_Local_Variables* var = S_ContextFindVariable(interpreter, func_symbol->symbol, false, false);  // search global
+        if (var == 0)
+        {
+            success = false;
+            ERR_Print(ERR_LEVEL_ERROR,
+                "Line %d: Can not find function %s.",
+                exp->fn->header.lineno,
+                func_symbol->symbol);
+            goto __EXIT;
+        }
+
+        success = true;
+        S_PushRuntimeStackValue(interpreter, var->value);
+    }
     
     if (!success)
         return success;
@@ -818,11 +860,7 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
         S_PopRuntimeStackValue(interpreter);
         return false;
     }
-
-    struct S_Value* returned_value = 0;
     struct S_Value_Function* function = (struct S_Value_Function*)function_value;
-    struct S_Value** value_array = 0;
-    bool has_pushed_contenxt = false;
 
     // is a class method?
     bool is_method = false;
@@ -928,14 +966,14 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
 
         // count parameter and expression.
         int exp_count = 0;
-        while (current_exp_list != 0)
+        while (current_exp_list != 0 && current_exp_list->exp != 0)
         {
             exp_count++;
             current_exp_list = current_exp_list->next;
         }
 
         int param_count = 0;
-        while (current_param_list != 0)
+        while (current_param_list != 0 && current_param_list->symbol != 0)
         {
             param_count++;
             current_param_list = current_param_list->next;
@@ -944,24 +982,13 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
         if (exp_count != param_count)
             goto __EXIT_PARAM_MISMATCH;
 
-        // check empty parameter and expression.
-        current_exp_list = exp->param;
-        current_param_list = function->u.script.param_list;
-        if (current_exp_list->exp == 0)
-        {
-            if (current_param_list->symbol != 0)
-                goto __EXIT_PARAM_MISMATCH;
-
-            current_exp_list = 0;
-            current_param_list = 0;
-            exp_count = param_count = 0;
-        }
-
         // eval expression and assign local parameter.
         if (param_count > 0)
             value_array = (struct S_Value**)malloc(sizeof(struct Value*) * param_count);
+
+        current_exp_list = exp->param;
         int current_index = 0;
-        while (current_exp_list != 0)
+        while (current_exp_list != 0 && current_exp_list->exp != 0)
         {
             success = S_Eval_Expression(interpreter, current_exp_list->exp);
             if (!success)
@@ -998,7 +1025,7 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
         }
 
         // eval function body.
-        bool success = S_Eval_Code_Block(interpreter, function->u.script.code_block);
+        success = S_Eval_Code_Block(interpreter, function->u.script.code_block);
         if (success == true)
         {
             if (S_IsHaveReturnValue(interpreter))

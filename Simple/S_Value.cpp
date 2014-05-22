@@ -3,12 +3,11 @@
 #include "DBG.h"
 #include "S_Interpreter.h"
 #include "S_Value.h"
+#include "ERR.h"
 #include <vector>
 #include <string>
 
-bool S_NativePrint(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count);
-
-void InitializeValueHeader(struct S_Interpreter* interpreter, struct S_Value* value, int type)
+void InitializeValueHeader(struct S_Interpreter* interpreter, struct S_Value* value, enum S_Value_Type type)
 {
     DCHECK(value != 0);
     DCHECK(type >= VALUE_TYPE_MIN && type < VALUE_TYPE_MAX);
@@ -80,6 +79,22 @@ struct S_Value_Double* S_CreateValueDouble(struct S_Interpreter* interpreter, do
     return v;
 }
 
+bool S_NativeMethodStringSize(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count)
+{
+    if (param_count != 1 || param_array[0]->header.type != VALUE_TYPE_STRING)
+    {
+        ERR_Print(ERR_LEVEL_ERROR,
+            "string.size() should be called as an string method and with no parameter.");
+        return false;
+    }
+
+    struct S_Value_String* str = (struct S_Value_String*)(param_array[0]);
+    struct S_Value_Integer* s = S_CreateValueInteger(interpreter, (int)str->length);
+
+    S_PushRuntimeStackValue(interpreter, (struct S_Value*)s);
+    return true;
+}
+
 struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, const char* string)
 {
     DCHECK(string != 0);
@@ -91,7 +106,8 @@ struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, co
     InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_STRING);
     v->string = MM_CopyString(interpreter->RunningStorage, string);
     v->length = strlen(v->string);
-    S_Set_Value_Field(interpreter, (struct S_Value*)v, "print", (struct S_Value*)S_CreateValueNativeFunction(interpreter, S_NativePrint));
+
+    S_Set_Value_Field(interpreter, (struct S_Value*)v, "size", (struct S_Value*)S_CreateValueNativeFunction(interpreter, S_NativeMethodStringSize));
     return v;
 }
 
@@ -135,6 +151,22 @@ struct S_Value_Function* S_CreateValueNativeFunction(struct S_Interpreter* inter
     return v;
 }
 
+bool S_NativeMethodArraySize(struct S_Interpreter* interpreter, struct S_Value** param_array, int param_count)
+{
+    if (param_count != 1 || param_array[0]->header.type != VALUE_TYPE_ARRAY)
+    {
+        ERR_Print(ERR_LEVEL_ERROR,
+            "array.size() should be called as an array method and with no parameter.");
+        return false;
+    }
+
+    struct S_Value_Array* array = (struct S_Value_Array*)(param_array[0]);
+    struct S_Value_Integer* s = S_CreateValueInteger(interpreter, (int)array->array_size);
+
+    S_PushRuntimeStackValue(interpreter, (struct S_Value*)s);
+    return true;
+}
+
 struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, struct S_Value** value_array, unsigned int array_size)
 {
     DCHECK(value_array != 0 || array_size != 0);
@@ -159,6 +191,8 @@ struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, stru
     InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_ARRAY);
     v->value_array = array;
     v->array_size = array_size;
+
+    S_Set_Value_Field(interpreter, (struct S_Value*)v, "size", (struct S_Value*)S_CreateValueNativeFunction(interpreter, S_NativeMethodArraySize));
     return v;
 }
 

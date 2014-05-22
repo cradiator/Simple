@@ -11,7 +11,7 @@ struct S_Expression_Header;
 //// End od Declearation ////
 
 //// Expression /////
-enum {
+enum S_Expression_Type {
     EXPRESSION_TYPE_NIL = 0,
     EXPRESSION_TYPE_INTEGER,
     EXPRESSION_TYPE_DOUBLE,
@@ -48,7 +48,7 @@ enum {
 };
 
 struct S_Expression_Header {
-    int type;
+    enum S_Expression_Type type;
     int lineno;
 };
 
