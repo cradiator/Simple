@@ -25,35 +25,47 @@ void InitializeValueHeader(struct S_Interpreter* interpreter, struct S_Value* va
 
 struct S_Value_Nil* S_CreateValueNil(struct S_Interpreter* interpreter)
 {
+    if (interpreter->ValueNil != 0)
+        return interpreter->ValueNil;
+
     struct S_Value_Nil* v = 
         (struct S_Value_Nil*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_Nil));
 
     DCHECK(v != 0);
     InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_NIL);
 
+    interpreter->ValueNil = v;
     return v;
 }
 
 
 struct S_Value_True* S_CreateValueTrue(struct S_Interpreter* interpreter)
 {
+    if (interpreter->ValueTrue != 0)
+        return interpreter->ValueTrue;
+
     struct S_Value_True* v = 
         (struct S_Value_True*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_True));
 
     DCHECK(v != 0);
     InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_TRUE);
 
+    interpreter->ValueTrue = v;
     return v;
 }
 
 struct S_Value_False* S_CreateValueFalse(struct S_Interpreter* interpreter)
 {
+    if (interpreter->ValueFalse != 0)
+        return interpreter->ValueFalse;
+
     struct S_Value_False* v = 
         (struct S_Value_False*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_False));
 
     DCHECK(v != 0);
     InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_FALSE);
 
+    interpreter->ValueFalse = v;
     return v;
 }
 
@@ -108,6 +120,20 @@ struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, co
     v->length = strlen(v->string);
 
     S_Set_Value_Field(interpreter, (struct S_Value*)v, "size", (struct S_Value*)S_CreateValueNativeFunction(interpreter, S_NativeMethodStringSize));
+    return v;
+}
+
+struct S_Value_Char* S_CreateValueChar(struct S_Interpreter* interpreter, char c)
+{
+    if (interpreter->ValueChar[c] != 0)
+        return interpreter->ValueChar[c];
+
+    struct S_Value_Char* v =
+        (struct S_Value_Char*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_Char));
+    DCHECK(v != 0);
+
+    InitializeValueHeader(interpreter, (struct S_Value*)v, VALUE_TYPE_CHAR);
+    v->c = c;
     return v;
 }
 
@@ -226,6 +252,11 @@ void ConvertValueToStringHelper(struct S_Value* value, std::string& result)
                 result += ", ";
         }
         result += ']';
+    }
+    else if (value_type == VALUE_TYPE_CHAR)
+    {
+        struct S_Value_Char* c = (struct S_Value_Char*)value;
+        result += c->c;
     }
     else
     {

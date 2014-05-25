@@ -61,20 +61,21 @@
      DOUBLE = 259,
      SYMBOL = 260,
      STRING = 261,
-     CMP = 262,
-     REL = 263,
-     RETURN = 264,
-     GLOBAL = 265,
-     FUNCTION = 266,
-     WHILE = 267,
-     IF = 268,
-     ELSE = 269,
-     ELIF = 270,
-     NIL = 271,
-     TRUE = 272,
-     FALSE = 273,
-     DOT = 274,
-     ERROR_LEXICAL_MARK = 275
+     CHAR = 262,
+     CMP = 263,
+     REL = 264,
+     RETURN = 265,
+     GLOBAL = 266,
+     FUNCTION = 267,
+     WHILE = 268,
+     IF = 269,
+     ELSE = 270,
+     ELIF = 271,
+     NIL = 272,
+     TRUE = 273,
+     FALSE = 274,
+     DOT = 275,
+     ERROR_LEXICAL_MARK = 276
    };
 #endif
 
@@ -91,6 +92,7 @@ typedef union YYSTYPE
   double double_number;	
   char*  id;
   char*  string;
+  char   char_ascii;
   int    cmp_type;
   int    rel_type;
 
@@ -105,7 +107,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 109 "simple.tab.h"
+#line 111 "simple.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

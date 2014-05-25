@@ -11,6 +11,7 @@ enum S_Value_Type {
     VALUE_TYPE_INTEGER,
     VALUE_TYPE_DOUBLE,
     VALUE_TYPE_STRING,
+    VALUE_TYPE_CHAR,
     VALUE_TYPE_SYMBOL,
     VALUE_TYPE_FUNCTION,
     VALUE_TYPE_ARRAY,
@@ -73,6 +74,11 @@ struct S_Value_String {
     unsigned int length;
 };
 
+struct S_Value_Char {
+    struct S_Value_Header header;
+    char c;
+};
+
 struct S_Value_Symbol {
     struct S_Value_Header header;
     char* symbol;
@@ -124,6 +130,8 @@ struct S_Value_Integer* S_CreateValueInteger(struct S_Interpreter* interpreter, 
 struct S_Value_Double* S_CreateValueDouble(struct S_Interpreter* interpreter, double value);
 
 struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, const char* string);
+
+struct S_Value_Char* S_CreateValueChar(struct S_Interpreter* interpreter, char c);
 
 struct S_Value_Symbol* S_CreateValueSymbol(struct S_Interpreter* interpreter, const char* symbol);
 

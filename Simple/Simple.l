@@ -9,7 +9,7 @@
 %}
 
 %option noyywrap nodefault interactive yylineno
-%start STRING_CONTENT COMMENT
+%start STRING_CONTENT CHAR_CONTENT COMMENT
 
 %%
 <INITIAL>[0-9]+ {yylloc = S_GetSrcLineNo(interpreter); yylval.int_number = atoi(yytext); return INTEGER;}
@@ -80,6 +80,13 @@
 <STRING_CONTENT>\\\\ {S_AddStringChar(interpreter, '\\');}
 <STRING_CONTENT>.    {S_AddStringChar(interpreter, yytext[0]);}
 <STRING_CONTENT><<EOF>> {yyerror(interpreter, "Unclosing quote"); return ERROR_LEXICAL_MARK;}
+
+<INITIAL>'\\n'   {yylloc = S_GetSrcLineNo(interpreter); yylval.char_ascii = '\n'; return CHAR;}
+<INITIAL>'\\t'   {yylloc = S_GetSrcLineNo(interpreter); yylval.char_ascii = '\t'; return CHAR;}
+<INITIAL>'\\''   {yylloc = S_GetSrcLineNo(interpreter); yylval.char_ascii = '\''; return CHAR;}
+<INITIAL>'\\\\'  {yylloc = S_GetSrcLineNo(interpreter); yylval.char_ascii = '\\'; return CHAR;}
+<INITIAL>'.'     {yylloc = S_GetSrcLineNo(interpreter); yylval.char_ascii = yytext[1]; return CHAR;}
+
 
 <INITIAL>"//" {BEGIN COMMENT;}
 <INITIAL>"#"  {BEGIN COMMENT;}

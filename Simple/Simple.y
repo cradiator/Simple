@@ -21,6 +21,7 @@
   double double_number;	
   char*  id;
   char*  string;
+  char   char_ascii;
   int    cmp_type;
   int    rel_type;
 
@@ -37,6 +38,7 @@
 %token<double_number> DOUBLE
 %token<id>       SYMBOL
 %token<string>   STRING
+%token<char_ascii> CHAR
 %token<cmp_type> CMP
 %token<rel_type> REL
 %token RETURN GLOBAL FUNCTION WHILE IF ELSE ELIF NIL TRUE FALSE DOT
@@ -149,6 +151,7 @@ term : INTEGER {$$ = (struct S_Expression*)S_CreateExpressionInteger(interpreter
      | NIL {$$ = (struct S_Expression*)S_CreateExpressionNil(interpreter);}
      | TRUE  {$$ = (struct S_Expression*)S_CreateExpressionTrue(interpreter);}
      | FALSE {$$ = (struct S_Expression*)S_CreateExpressionFalse(interpreter);}
+     | CHAR  {$$ = (struct S_Expression*)S_CreateExpressionChar(interpreter, $1);}
      | '(' expr ')' {$$ = $2;}
      | '-' term {$$ = (struct S_Expression*)S_CreateExpressionNegation(interpreter, $2);}
      | '[' expr_list ']' {$$ = (struct S_Expression*)S_CreateExpressionArray(interpreter, $2);}

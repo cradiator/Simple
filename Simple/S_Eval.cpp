@@ -1170,8 +1170,8 @@ bool S_Eval_Expression_Subscript(struct S_Interpreter* interpreter, struct S_Exp
             goto __EXIT;
         }
 
-        char s[2] = {instance_string->string[index_integer->value], 0};
-        returned_value = (struct S_Value*)S_CreateValueString(interpreter, s);
+        char c = instance_string->string[index_integer->value];
+        returned_value = (struct S_Value*)S_CreateValueChar(interpreter, c);
         success = true;
     }
     else if (instance->header.type == VALUE_TYPE_ARRAY)
@@ -1201,6 +1201,14 @@ __EXIT:
     }
 
     return success;
+}
+
+bool S_Eval_Expression_Char(struct S_Interpreter* interpreter, struct S_Expression_Char* exp)
+{
+    struct S_Value_Char* c = S_CreateValueChar(interpreter, exp->c);
+    DCHECK(c != 0);
+    S_PushRuntimeStackValue(interpreter, (struct S_Value*)c);
+    return true;
 }
 
 bool S_Eval_Expression_Dot(struct S_Interpreter* interpreter, struct S_Expression_Dot* exp)
@@ -1305,6 +1313,10 @@ bool S_Eval_Expression(struct S_Interpreter* interpreter, struct S_Expression* e
 
     case EXPRESSION_TYPE_DOT:
         success = S_Eval_Expression_Dot(interpreter, (struct S_Expression_Dot*)exp);
+        break;
+
+    case EXPRESSION_TYPE_CHAR:
+        success = S_Eval_Expression_Char(interpreter, (struct S_Expression_Char*)exp);
         break;
 
     default:

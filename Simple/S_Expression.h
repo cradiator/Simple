@@ -17,6 +17,7 @@ enum S_Expression_Type {
     EXPRESSION_TYPE_DOUBLE,
     EXPRESSION_TYPE_TRUE,
     EXPRESSION_TYPE_FALSE,
+    EXPRESSION_TYPE_CHAR,
     EXPRESSION_TYPE_STRING,
     EXPRESSION_TYPE_SYMBOL,
     EXPRESSION_TYPE_NEGATION,
@@ -76,6 +77,11 @@ struct S_Expression_True {
 
 struct S_Expression_False {
     struct S_Expression_Header header;
+};
+
+struct S_Expression_Char {
+    struct S_Expression_Header header;
+    char c;
 };
 
 struct S_Expression_String {
@@ -143,6 +149,8 @@ EXTERN_C struct S_Expression_False* S_CreateExpressionFalse(struct S_Interpreter
 
 // This function would take ownership of string.
 EXTERN_C struct S_Expression_String* S_CreateExpressionString(struct S_Interpreter* interpreter, char* string);
+
+EXTERN_C struct S_Expression_Char* S_CreateExpressionChar(struct S_Interpreter* interpreter, char c);
 
 // This function would take ownership of symbol.
 EXTERN_C struct S_Expression_Symbol* S_CreateExpressionSymbol(struct S_Interpreter* interpreter, char* symbol);

@@ -41,11 +41,24 @@ void S_GC(struct S_Interpreter* interpreter)
     // mark runtime stack
     MarkRuntimeStack(interpreter);
 
+    // mark cached object
     if (interpreter->NativePrint)
         S_MarkValue(interpreter, (struct S_Value*)interpreter->NativePrint);
 
     if (interpreter->NativeToString)
         S_MarkValue(interpreter, (struct S_Value*)interpreter->NativeToString);
+
+    if (interpreter->ValueNil)
+        S_MarkValue(interpreter, (struct S_Value*)interpreter->ValueNil);
+
+    if (interpreter->ValueTrue)
+        S_MarkValue(interpreter, (struct S_Value*)interpreter->ValueTrue);
+
+    if (interpreter->ValueFalse)
+        S_MarkValue(interpreter, (struct S_Value*)interpreter->ValueFalse);
+
+    for (int i = 0; i < 256; ++i)
+        S_MarkValue(interpreter, (struct S_Value*)interpreter->ValueChar[i]);
 
     // sweep
     MM_SweepGCMemory(interpreter->RunningStorage);
@@ -168,6 +181,13 @@ struct S_Interpreter* S_NewInterpreter()
     // Push common native function.
     S_AddNativeFunction(s, "gc", S_NativeGC);
     S_AddNativeFunction(s, "array", S_NativeArray);
+
+    s->ValueTrue  = S_CreateValueTrue(s);
+    s->ValueFalse = S_CreateValueFalse(s);
+    s->ValueNil = S_CreateValueNil(s);
+    for (int i = 0; i < 256; ++i)
+        s->ValueChar[i] = S_CreateValueChar(s, (char)i);
+
 	return s;
 }
 

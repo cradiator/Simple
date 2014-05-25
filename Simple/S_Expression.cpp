@@ -70,6 +70,20 @@ struct S_Expression_False* S_CreateExpressionFalse(S_Interpreter* interpreter)
     return e;
 }
 
+struct S_Expression_Char* S_CreateExpressionChar(struct S_Interpreter* interpreter, char c)
+{
+    DCHECK(interpreter != 0);
+
+    struct S_Expression_Char* e =
+        (struct S_Expression_Char*)MM_AllocateStorage(interpreter->ParsingStorage,
+        sizeof(struct S_Expression_Char));
+    DCHECK(e != 0);
+
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_CHAR);
+    e->c = c;
+
+    return e;
+}
 
 struct S_Expression_String* S_CreateExpressionString(struct S_Interpreter* interpreter, char* string)
 {

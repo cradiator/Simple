@@ -33,8 +33,13 @@ struct S_Interpreter
     // GC-Collectable.
     struct S_Context* Context;
 
+    // Some common object cache.
     struct S_Value_Function* NativePrint;
     struct S_Value_Function* NativeToString;
+    struct S_Value_True*  ValueTrue;
+    struct S_Value_False* ValueFalse;
+    struct S_Value_Nil*   ValueNil;
+    struct S_Value_Char*  ValueChar[256];
 
     void* RuntimeStack;
 
