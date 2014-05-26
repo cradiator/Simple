@@ -265,6 +265,10 @@ int S_Run(struct S_Interpreter* interpreter)
     {
         return ERR_CODE_RUNTIME_ERROR;
     }
+    else if (S_IsHaveBreak(interpreter) || S_IsHaveContinue(interpreter))
+    {
+        return ERR_CODE_UNCATCHED_BREAK_CONTINUE;
+    }
 
     return ERR_CODE_SUCCESS;
 }
@@ -288,7 +292,49 @@ void yyerror(struct S_Interpreter* interpreter, const char* message, ...)
     ERR_Print(ERR_LEVEL_ERROR, "Line %d: %s\n", S_GetSrcLineNo(interpreter), buf);
 	va_end(ap);
 }
+// for break statement
+void S_SetBreak(struct S_Interpreter* interpreter)
+{
+    DCHECK((interpreter->Flag & INTERPRETER_FLAG_HAVE_BREAK) == 0);
+    interpreter->Flag |= INTERPRETER_FLAG_HAVE_BREAK;
+}
 
+void S_ClearBreak(struct S_Interpreter* interpreter)
+{
+    DCHECK((interpreter->Flag & INTERPRETER_FLAG_HAVE_BREAK) != 0);
+    interpreter->Flag &= ~INTERPRETER_FLAG_HAVE_BREAK;
+}
+
+bool S_IsHaveBreak(struct S_Interpreter* interpreter)
+{
+    if ((interpreter->Flag & INTERPRETER_FLAG_HAVE_BREAK) != 0)
+        return true;
+
+    return false;
+}
+
+// for continue statement
+void S_SetContinue(struct S_Interpreter* interpreter)
+{
+    DCHECK((interpreter->Flag & INTERPRETER_FLAG_HAVE_CONTINUE) == 0);
+    interpreter->Flag |= INTERPRETER_FLAG_HAVE_CONTINUE;
+}
+
+void S_ClearContinue(struct S_Interpreter* interpreter)
+{
+    DCHECK((interpreter->Flag & INTERPRETER_FLAG_HAVE_CONTINUE) != 0);
+    interpreter->Flag &= ~INTERPRETER_FLAG_HAVE_CONTINUE;
+}
+
+bool S_IsHaveContinue(struct S_Interpreter* interpreter)
+{
+    if ((interpreter->Flag & INTERPRETER_FLAG_HAVE_CONTINUE) != 0)
+        return true;
+
+    return false;
+}
+
+// for return statement
 void S_SetReturnValue(struct S_Interpreter* interpreter, S_Value* value)
 {
     DCHECK((interpreter->Flag & INTERPRETER_FLAG_HAVE_RETURN) == 0);
@@ -326,6 +372,7 @@ bool S_IsHaveReturnValue(struct S_Interpreter* interpreter)
     return false;
 }
 
+// add native function
 bool S_AddNativeFunction(struct S_Interpreter* interpreter, const char* name, S_NativeFunctionProto native_function)
 {
     struct S_Local_Variables* variable = S_ContextFindVariable(interpreter, name, true, true);
@@ -342,7 +389,6 @@ struct RuntimeStack {
     unsigned int current_size;
     struct S_Value** stack;
 };
-
 
 void InitRuntimeStackValue(struct S_Interpreter* interpreter)
 {

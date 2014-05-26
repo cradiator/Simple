@@ -443,6 +443,33 @@ struct S_Statement_If* S_CreateStatementIf(struct S_Interpreter* interpreter,
     s->else_body = else_body;
     return s;
 }
+
+struct S_Statement_Break* S_CreateStatementBreak(struct S_Interpreter* interpreter)
+{
+    DCHECK(interpreter != 0);
+
+    struct S_Statement_Break* s = 
+        (struct S_Statement_Break*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                      sizeof(struct S_Statement_Break));
+    DCHECK(s != 0);
+
+    s->header.type = STATEMENT_TYPE_BREAK;
+    return s;
+}
+
+struct S_Statement_Continue* S_CreateStatementContinue(struct S_Interpreter* interpreter)
+{
+    DCHECK(interpreter != 0);
+
+    struct S_Statement_Continue* s = 
+        (struct S_Statement_Continue*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                      sizeof(struct S_Statement_Continue));
+    DCHECK(s != 0);
+
+    s->header.type = STATEMENT_TYPE_CONTINUE;
+    return s;
+}
+
 //// End of Statement ////
 
 //// Statement List ////

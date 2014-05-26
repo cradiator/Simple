@@ -64,6 +64,10 @@
 
 <INITIAL>"false"    {yylloc = S_GetSrcLineNo(interpreter); return FALSE;}
 
+<INITIAL>"break" {yylloc = S_GetSrcLineNo(interpreter); return BREAK;}
+
+<INITIAL>"continue" {yylloc = S_GetSrcLineNo(interpreter); return CONTINUE;}
+
 
 <INITIAL>[a-zA-Z_][a-zA-Z0-9_]*   {yylloc = S_GetSrcLineNo(interpreter); yylval.id = S_AllocateStringInParsingStorage(interpreter, yytext); return SYMBOL;}
 

@@ -1028,7 +1028,15 @@ bool S_Eval_Expression_Function_Call(struct S_Interpreter* interpreter, struct S
         success = S_Eval_Code_Block(interpreter, function->u.script.code_block);
         if (success == true)
         {
-            if (S_IsHaveReturnValue(interpreter))
+            if (S_IsHaveBreak(interpreter) || S_IsHaveContinue(interpreter))
+            {
+                // unused break or continue in function body. error.
+                success = false;
+                ERR_Print(ERR_LEVEL_ERROR,
+                          "Line %d: unused break or interpreter in function call",
+                          exp->header.lineno);
+            }
+            else if (S_IsHaveReturnValue(interpreter))
             {
                 returned_value = S_GetReturnValue(interpreter);
                 S_ClearReturnValue(interpreter);
@@ -1410,6 +1418,22 @@ bool S_Eval_Statement_While(struct S_Interpreter* interpreter, struct S_Statemen
                 S_PopRuntimeStackValue(interpreter);
                 break;
             }
+            // return or break
+            else if (S_IsHaveReturnValue(interpreter))
+            {
+                S_PopRuntimeStackValue(interpreter);
+                break;
+            }
+            else if (S_IsHaveBreak(interpreter))
+            {
+                S_PopRuntimeStackValue(interpreter);
+                S_ClearBreak(interpreter);
+                break;               
+            }
+            else if (S_IsHaveContinue(interpreter))
+            {
+                S_ClearContinue(interpreter);
+            }
 
             // pop condition_result out.
             S_PopRuntimeStackValue(interpreter);
@@ -1504,6 +1528,18 @@ __EXIT:
     return success;
 }
 
+bool S_Eval_Statement_Break(struct S_Interpreter* interpreter, struct S_Statement_Break* stat)
+{
+    S_SetBreak(interpreter);
+    return true;
+}
+
+bool S_Eval_Statement_Continue(struct S_Interpreter* interpreter, struct S_Statement_Continue* stat)
+{
+    S_SetContinue(interpreter);
+    return true;
+}
+
 bool S_Eval_Statement(struct S_Interpreter* interpreter, struct S_Statement* stat)
 {
     DCHECK(interpreter != 0);
@@ -1536,6 +1572,14 @@ bool S_Eval_Statement(struct S_Interpreter* interpreter, struct S_Statement* sta
 
         case STATEMENT_TYPE_IF:
             eval_success = S_Eval_Statement_If(interpreter, (struct S_Statement_If*)stat);
+            break;
+
+        case STATEMENT_TYPE_BREAK:
+            eval_success = S_Eval_Statement_Break(interpreter, (struct S_Statement_Break*)stat);
+            break;
+
+        case STATEMENT_TYPE_CONTINUE:
+            eval_success = S_Eval_Statement_Continue(interpreter, (struct S_Statement_Continue*)stat);
             break;
             
         default:
@@ -1581,7 +1625,14 @@ bool S_Eval_Statement_List(struct S_Interpreter* interpreter, struct S_Statement
         // have return, break the loop
         if (S_IsHaveReturnValue(interpreter))
         {
-            DCHECK(stat->header.type == STATEMENT_TYPE_RETURN);
+            break;
+        }
+        else if (S_IsHaveBreak(interpreter))
+        {
+            break;
+        }
+        else if (S_IsHaveContinue(interpreter))
+        {
             break;
         }
 

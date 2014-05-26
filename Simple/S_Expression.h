@@ -223,6 +223,8 @@ enum {
     STATEMENT_TYPE_FUNCTION_DEFINE,
     STATEMENT_TYPE_WHILE,
     STATEMENT_TYPE_IF,
+    STATEMENT_TYPE_BREAK,
+    STATEMENT_TYPE_CONTINUE
 };
 
 struct S_Statement_Header {
@@ -269,6 +271,14 @@ struct S_Statement_If {
     struct S_Code_Block* else_body;
 };
 
+struct S_Statement_Break {
+    struct S_Statement_Header header;
+};
+
+struct S_Statement_Continue {
+    struct S_Statement_Header header;
+};
+
 EXTERN_C struct S_Statement_Expression* S_CreateStatementExpression(struct S_Interpreter* interpreter, 
                                                            struct S_Expression* expression);
 
@@ -293,6 +303,11 @@ EXTERN_C struct S_Statement_If* S_CreateStatementIf(struct S_Interpreter* interp
                                            struct S_Code_Block* body,
                                            struct S_Elif_List*  elif_list,
                                            struct S_Code_Block* else_body);
+
+EXTERN_C struct S_Statement_Break* S_CreateStatementBreak(struct S_Interpreter* interpreter);
+
+EXTERN_C struct S_Statement_Continue* S_CreateStatementContinue(struct S_Interpreter* interpreter);
+
 
 //// End of Statement ////
 

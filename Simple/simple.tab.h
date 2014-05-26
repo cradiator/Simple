@@ -75,7 +75,9 @@
      TRUE = 273,
      FALSE = 274,
      DOT = 275,
-     ERROR_LEXICAL_MARK = 276
+     BREAK = 276,
+     CONTINUE = 277,
+     ERROR_LEXICAL_MARK = 278
    };
 #endif
 
@@ -107,7 +109,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 111 "simple.tab.h"
+#line 113 "simple.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

@@ -125,7 +125,7 @@ struct S_Value_String* S_CreateValueString(struct S_Interpreter* interpreter, co
 
 struct S_Value_Char* S_CreateValueChar(struct S_Interpreter* interpreter, char c)
 {
-    if (interpreter->ValueChar[c] != 0)
+    if (interpreter->ValueChar[(unsigned char)c] != 0)
         return interpreter->ValueChar[c];
 
     struct S_Value_Char* v =

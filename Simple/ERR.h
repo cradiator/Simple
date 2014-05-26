@@ -8,6 +8,7 @@ enum {
     ERR_CODE_COMPILE_SOURCE_ERROR,
     ERR_CODE_NO_SCRIPT,
     ERR_CODE_RUNTIME_ERROR,
+    ERR_CODE_UNCATCHED_BREAK_CONTINUE,
 };
 
 __declspec(selectany)
@@ -19,6 +20,7 @@ const char* ERR_MESSAGE[] = {
     "Compile source error",
     "No script to run",
     "Runtime error"
+    "Uncatched break or continue."
 };
 
 enum {

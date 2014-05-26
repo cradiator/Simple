@@ -26,6 +26,7 @@ const char* VALUE_NAME[] = {
     "integer",
     "double",
     "string",
+    "char",
     "symbol",
     "function",
     "array",

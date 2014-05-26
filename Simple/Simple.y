@@ -41,7 +41,7 @@
 %token<char_ascii> CHAR
 %token<cmp_type> CMP
 %token<rel_type> REL
-%token RETURN GLOBAL FUNCTION WHILE IF ELSE ELIF NIL TRUE FALSE DOT
+%token RETURN GLOBAL FUNCTION WHILE IF ELSE ELIF NIL TRUE FALSE DOT BREAK CONTINUE
 %token ERROR_LEXICAL_MARK
 
 %left '.'
@@ -91,12 +91,15 @@ else_if_list : else_if_list ELIF '(' expr ')'block {S_AddElifList(interpreter, $
 stat : expr ';' {$$ = (struct S_Statement*)S_CreateStatementExpression(interpreter, $1);}
      | GLOBAL SYMBOL ';' {$$ = (struct S_Statement*)S_CreateStatementGlobal(interpreter, S_CreateExpressionSymbol(interpreter, $2));}
      | RETURN expr ';' {$$ = (struct S_Statement*)S_CreateStatementReturn(interpreter, $2);}
+     | RETURN ';' {$$ = (struct S_Statement*)S_CreateStatementReturn(interpreter, (struct S_Expression*)S_CreateExpressionNil(interpreter));}
      | FUNCTION SYMBOL '(' param_list ')' block {$$ = (struct S_Statement*)S_CreateStatementFunctionDefine(interpreter, S_CreateExpressionSymbol(interpreter, $2), $4, $6);}
      | WHILE '(' expr ')' block {$$ = (struct S_Statement*)S_CreateStatementWhile(interpreter, $3, $5);}
      | IF '(' expr ')' block {$$ = (struct S_Statement*)S_CreateStatementIf(interpreter, $3, $5, 0, 0);}
      | IF '(' expr ')' block ELSE block {$$ = (struct S_Statement*)S_CreateStatementIf(interpreter, $3, $5, 0, $7);}
      | IF '(' expr ')' block else_if_list {$$ = (struct S_Statement*)S_CreateStatementIf(interpreter, $3, $5, $6, 0);}
      | IF '(' expr ')' block else_if_list ELSE block {$$ = (struct S_Statement*)S_CreateStatementIf(interpreter, $3, $5, $6, $8);}
+     | BREAK ';' {$$ = (struct S_Statement*)S_CreateStatementBreak(interpreter);}
+     | CONTINUE ';' {$$ = (struct S_Statement*)S_CreateStatementContinue(interpreter);}
      ;
 
 expr : assign {$$ = $1;}

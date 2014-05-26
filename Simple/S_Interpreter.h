@@ -13,7 +13,9 @@ enum
 {
 	INTERPRETER_FLAG_OPENSTRING    = 0x01,
     INTERPRETER_FLAG_HAVE_SOURCE   = 0x02,
-    INTERPRETER_FLAG_HAVE_RETURN = 0x04,
+    INTERPRETER_FLAG_HAVE_RETURN   = 0x04,
+    INTERPRETER_FLAG_HAVE_BREAK    = 0x08,
+    INTERPRETER_FLAG_HAVE_CONTINUE = 0x10,
 };
 
 struct S_Interpreter
@@ -90,6 +92,17 @@ void S_ClearReturnValue(struct S_Interpreter* interpreter);
 #ifdef __cplusplus
 // Does we have return value?
 bool S_IsHaveReturnValue(struct S_Interpreter* interpreter);
+
+// for break statement
+void S_SetBreak(struct S_Interpreter* interpreter);
+void S_ClearBreak(struct S_Interpreter* interpreter);
+bool S_IsHaveBreak(struct S_Interpreter* interpreter);
+
+// for continue statement
+void S_SetContinue(struct S_Interpreter* interpreter);
+void S_ClearContinue(struct S_Interpreter* interpreter);
+bool S_IsHaveContinue(struct S_Interpreter* interpreter);
+
 #endif
 
 // Push a value into runtime stack
