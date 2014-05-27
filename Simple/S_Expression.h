@@ -269,7 +269,7 @@ struct S_Statement_For {
     struct S_Expression* exp_init;      // exp_xxx could be 0.
     struct S_Expression* exp_condition;
     struct S_Expression* exp_next;
-    struct S_Code_Block* code;
+    struct S_Code_Block* body;
 };
 
 struct S_Statement_If {

@@ -774,7 +774,10 @@ bool S_Eval_Expression_Op2(struct S_Interpreter* interpreter, struct S_Expressio
 
     success = S_Eval_Expression(interpreter, exp->exp1);
     if (!success)
+    {
+        S_PopRuntimeStackValue(interpreter);    // pop exp->exp2 result out.
         goto __EXIT;
+    }
     
     switch(exp->op)
     {
@@ -1659,6 +1662,7 @@ bool S_Eval_Statement(struct S_Interpreter* interpreter, struct S_Statement* sta
 
         case STATEMENT_TYPE_FOR:
             eval_success = S_Eval_Statement_For(interpreter, (struct S_Statement_For*)stat);
+            break;
 
         case STATEMENT_TYPE_IF:
             eval_success = S_Eval_Statement_If(interpreter, (struct S_Statement_If*)stat);
