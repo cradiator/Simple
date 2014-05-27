@@ -766,6 +766,8 @@ bool S_Eval_Expression_Op2(struct S_Interpreter* interpreter, struct S_Expressio
         return EvalAssign(interpreter, exp);
     }
 
+    unsigned int start_stack_index = S_GetRuntimeStackSize(interpreter);
+
     // Push exp2 and exp1 result.
     bool success = false;
     success = S_Eval_Expression(interpreter, exp->exp2);
@@ -815,6 +817,12 @@ bool S_Eval_Expression_Op2(struct S_Interpreter* interpreter, struct S_Expressio
     }
 
 __EXIT:
+    if (!success)
+    {
+        while (start_stack_index != S_GetRuntimeStackSize(interpreter))
+            S_PopRuntimeStackValue(interpreter);
+    }
+
     return success;
 }
 
