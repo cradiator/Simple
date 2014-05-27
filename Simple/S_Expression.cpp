@@ -421,6 +421,27 @@ struct S_Statement_While* S_CreateStatementWhile(struct S_Interpreter* interpret
     return s;
 }
 
+struct S_Statement_For* S_CreateStatementFor(struct S_Interpreter* interpreter,
+                                             struct S_Expression*  exp_init,
+                                             struct S_Expression*  exp_condition,
+                                             struct S_Expression*  exp_next,
+                                             struct S_Code_Block*  body)
+{
+    DCHECK(interpreter != 0);
+    DCHECK(body != 0);
+
+    struct S_Statement_For* s = 
+        (struct S_Statement_For*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                    sizeof(struct S_Statement_For));
+    s->header.type = STATEMENT_TYPE_FOR;
+    s->exp_init = exp_init;
+    s->exp_condition = exp_condition;
+    s->exp_next = exp_next;
+    s->body = body;
+
+    return s;
+}
+
 struct S_Statement_If* S_CreateStatementIf(struct S_Interpreter* interpreter,
                                            struct S_Expression* condition,
                                            struct S_Code_Block* body,

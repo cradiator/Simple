@@ -1462,6 +1462,93 @@ bool S_Eval_Statement_While(struct S_Interpreter* interpreter, struct S_Statemen
     return success;
 }
 
+bool S_Eval_Statement_For(struct S_Interpreter* interpreter, struct S_Statement_For* stat)
+{
+    bool success = false;
+    unsigned int start_stack_index = S_GetRuntimeStackSize(interpreter);
+
+    if (stat->exp_init != 0)
+    {
+        success = S_Eval_Expression(interpreter, stat->exp_init);
+        if (!success)
+            goto __EXIT;
+    }
+
+    S_PopRuntimeStackValue(interpreter);    // pop stat->exp_init result out from stack.
+
+    // eval loop
+    for (;;)
+    {
+        struct S_Value* condition_result = 0;
+        if (stat->exp_condition != 0)
+        {
+            success = S_Eval_Expression(interpreter, stat->exp_condition);
+            if (!success)
+                goto __EXIT;
+            condition_result = S_PeekRuntimeStackValue(interpreter, 0);
+        }
+
+        // condition is true
+        if (condition_result == 0 || condition_result->header.type == VALUE_TYPE_TRUE)
+        {
+            if (condition_result != 0)
+                S_PopRuntimeStackValue(interpreter);    // pop stat->exp_condition result out from stack.
+
+            // eval body
+            success = S_Eval_Code_Block(interpreter, stat->body);
+            if (!success)
+                goto __EXIT;
+
+            // check continue/break/return flag.
+            if (S_IsHaveContinue(interpreter))
+            {
+                S_ClearContinue(interpreter);
+            }
+            else if (S_IsHaveBreak(interpreter))
+            {
+                S_ClearBreak(interpreter);
+                break;
+            }
+            else if (S_IsHaveReturnValue(interpreter))
+            {
+                break;
+            }
+
+            // eval next expression
+            success = S_Eval_Expression(interpreter, stat->exp_next);
+            if (!success)
+                goto __EXIT;
+            S_PopRuntimeStackValue(interpreter);    // pop stat->exp_next result out from stack
+
+            // loop back
+        }
+
+        // condition return false, break the loop
+        else if (condition_result->header.type == VALUE_TYPE_FALSE || condition_result->header.type == VALUE_TYPE_NIL)
+        {
+            success = true;
+            break;
+        }
+
+        // bad condition
+        else
+        {
+            ERR_Print(ERR_LEVEL_ERROR,
+                      "Line %d: %s can not be a condition value.",
+                      stat->exp_condition->header.lineno,
+                      VALUE_NAME[condition_result->header.type]);
+            success = false;
+            goto __EXIT;
+        }
+    }
+
+__EXIT:
+    while(S_GetRuntimeStackSize(interpreter) != start_stack_index)
+        S_PopRuntimeStackValue(interpreter);
+
+    return success;
+}
+
 bool S_Eval_Statement_If(struct S_Interpreter* interpreter, struct S_Statement_If* stat)
 {
     bool success = S_Eval_Expression(interpreter, stat->condition);
@@ -1569,6 +1656,9 @@ bool S_Eval_Statement(struct S_Interpreter* interpreter, struct S_Statement* sta
         case STATEMENT_TYPE_WHILE:
             eval_success = S_Eval_Statement_While(interpreter, (struct S_Statement_While*)stat);
             break;
+
+        case STATEMENT_TYPE_FOR:
+            eval_success = S_Eval_Statement_For(interpreter, (struct S_Statement_For*)stat);
 
         case STATEMENT_TYPE_IF:
             eval_success = S_Eval_Statement_If(interpreter, (struct S_Statement_If*)stat);

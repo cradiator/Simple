@@ -222,6 +222,7 @@ enum {
     STATEMENT_TYPE_RETURN,
     STATEMENT_TYPE_FUNCTION_DEFINE,
     STATEMENT_TYPE_WHILE,
+    STATEMENT_TYPE_FOR,
     STATEMENT_TYPE_IF,
     STATEMENT_TYPE_BREAK,
     STATEMENT_TYPE_CONTINUE
@@ -263,6 +264,14 @@ struct S_Statement_While {
     struct S_Code_Block* body;
 };
 
+struct S_Statement_For {
+    struct S_Statement_Header header;
+    struct S_Expression* exp_init;      // exp_xxx could be 0.
+    struct S_Expression* exp_condition;
+    struct S_Expression* exp_next;
+    struct S_Code_Block* code;
+};
+
 struct S_Statement_If {
     struct S_Statement_Header header;
     struct S_Expression* condition;
@@ -296,6 +305,12 @@ EXTERN_C struct S_Statement_Function_Define* S_CreateStatementFunctionDefine(str
 EXTERN_C struct S_Statement_While* S_CreateStatementWhile(struct S_Interpreter* interpreter,
                                                  struct S_Expression* condition,
                                                  struct S_Code_Block* body);
+
+EXTERN_C struct S_Statement_For* S_CreateStatementFor(struct S_Interpreter* interpreter,
+                                                      struct S_Expression*  exp_init,
+                                                      struct S_Expression*  exp_condition,
+                                                      struct S_Expression*  exp_next,
+                                                      struct S_Code_Block*  body);
 
 // else_body could be NULL
 EXTERN_C struct S_Statement_If* S_CreateStatementIf(struct S_Interpreter* interpreter,
