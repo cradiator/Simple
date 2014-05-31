@@ -195,14 +195,21 @@ bool S_NativeMethodArraySize(struct S_Interpreter* interpreter, struct S_Value**
 
 struct S_Value_Array* S_CreateValueArray(struct S_Interpreter* interpreter, struct S_Value** value_array, unsigned int array_size)
 {
-    DCHECK(value_array != 0 || array_size != 0);
+    if (array_size == 0)
+    {
+        DCHECK(value_array == 0);
+    }
 
     struct S_Value_Array* v = 
         (struct S_Value_Array*)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value_Array));
     DCHECK(v != 0);
 
-    struct S_Value** array = (struct S_Value**)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value*) * array_size);
-    DCHECK(array != 0);
+    struct S_Value** array = 0;
+    if (array_size != 0)
+    {
+        array = (struct S_Value**)MM_Malloc(interpreter->RunningStorage, sizeof(struct S_Value*) * array_size);
+        DCHECK(array != 0);
+    }
 
     if (value_array != 0)
     {

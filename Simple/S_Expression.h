@@ -27,6 +27,7 @@ enum S_Expression_Type {
     EXPRESSION_TYPE_ARRAY,
     EXPRESSION_TYPE_SUBSCRIPT,
     EXPRESSION_TYPE_DOT,
+    EXPRESSION_TYPE_RANGE,
 };
 
 enum {
@@ -136,6 +137,12 @@ struct S_Expression_Dot {
     struct S_Expression_Symbol* field;
 };
 
+struct S_Expression_Range {
+    struct S_Expression_Header header;
+    struct S_Expression* exp_start;
+    struct S_Expression* exp_end;
+};
+
 
 EXTERN_C struct S_Expression_Nil* S_CreateExpressionNil(struct S_Interpreter* interpreter);
 
@@ -180,6 +187,11 @@ EXTERN_C struct S_Expression_Subscript* S_CreateExpressionSubscript(struct S_Int
 EXTERN_C struct S_Expression_Dot* S_CreateExpressionDot(struct S_Interpreter* interpreter,
                                                         struct S_Expression* instance,
                                                         struct S_Expression_Symbol* field);
+
+EXTERN_C struct S_Expression_Range* S_CreateExpressionRange(struct S_Interpreter* interpreter,
+                                                            struct S_Expression* exp_start,
+                                                            struct S_Expression* exp_end);
+
 
 //// End of Expression ////
 

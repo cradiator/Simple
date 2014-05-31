@@ -676,7 +676,7 @@ bool EvalAssign(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
         if (instance->header.type != VALUE_TYPE_ARRAY)
         {
             ERR_Print(ERR_LEVEL_ERROR,
-                "Line %d: %s can not be subscripted.",
+                "Line %d: %s can not be subscripted assignment.",
                 exp_sub->instance->header.lineno,
                 VALUE_NAME[instance->header.type]);
             S_PopRuntimeStackValue(interpreter);    // pop instance
@@ -686,6 +686,17 @@ bool EvalAssign(struct S_Interpreter* interpreter, struct S_Expression_Op2* exp)
         }
 
         // eval index
+        if (exp_sub->index->header.type == EXPRESSION_TYPE_RANGE)
+        {
+            ERR_Print(ERR_LEVEL_ERROR,
+                      "Line %d: not support range assignment.",
+                      exp_sub->index->header.lineno);
+            S_PopRuntimeStackValue(interpreter);    // pop instance
+            S_PopRuntimeStackValue(interpreter);    // pop right hand value
+            success = false;
+            goto __EXIT;
+        }
+
         success = S_Eval_Expression(interpreter, exp_sub->index);
         if (!success)
         {
@@ -1143,7 +1154,168 @@ __EXIT:
     return success;
 }
 
-bool S_Eval_Expression_Subscript(struct S_Interpreter* interpreter, struct S_Expression_Subscript* exp)
+bool S_Eval_Expression_Subscript_Range(struct S_Interpreter* interpreter, struct S_Expression_Subscript* exp)
+{
+    DCHECK(exp->index->header.type == EXPRESSION_TYPE_RANGE);
+
+    bool success = false;
+    struct S_Value* returned_value = 0;
+    struct S_Value* instance = 0;
+    struct S_Expression_Range* range = (struct S_Expression_Range*)exp->index;
+    unsigned int start_stack_index = S_GetRuntimeStackSize(interpreter);
+
+    // get instance
+    success = S_Eval_Expression(interpreter, exp->instance);
+    if (!success)
+        goto __EXIT;
+
+    instance = S_PeekRuntimeStackValue(interpreter, 0);
+
+    // get start index
+    unsigned int start_index = 0;
+    if (range->exp_start != 0)
+    {
+        success = S_Eval_Expression(interpreter, range->exp_start);
+        if (!success)
+            goto __EXIT;
+
+        struct S_Value* start = S_PeekRuntimeStackValue(interpreter, 0);
+        if (start->header.type != VALUE_TYPE_INTEGER)
+        {
+            ERR_Print(ERR_LEVEL_ERROR,
+                      "Line %d: %s can not be an range index.",
+                      range->exp_start->header.lineno,
+                      VALUE_NAME[start->header.type]);
+            success = false;
+            goto __EXIT;
+        }
+
+        start_index = (unsigned int)((struct S_Value_Integer*)start)->value;
+    }
+
+
+    // get end index
+    unsigned int end_index = 0xffffffff;
+    if (range->exp_end != 0)
+    {
+        success = S_Eval_Expression(interpreter, range->exp_end);
+        if (!success)
+            goto __EXIT;
+
+        struct S_Value* end = S_PeekRuntimeStackValue(interpreter, 0);
+        if (end->header.type != VALUE_TYPE_INTEGER)
+        {
+            ERR_Print(ERR_LEVEL_ERROR,
+                      "Line %d: %s can not be an range index.",
+                      range->exp_end->header.lineno,
+                      VALUE_NAME[end->header.type]);
+            success = false;
+            goto __EXIT;
+        }
+
+        end_index = (unsigned int)((struct S_Value_Integer*)end)->value;
+    }
+
+    // invalid range.
+    if (start_index > end_index)
+    {
+        ERR_Print(ERR_LEVEL_ERROR,
+                  "Line %d: [%d : %d] is invalid range.",
+                  range->header.lineno,
+                  start_index,
+                  end_index);
+        success = false;
+        goto __EXIT;
+    }
+
+
+    if (instance->header.type == VALUE_TYPE_STRING)
+    {
+        struct S_Value_String* value_string = (struct S_Value_String*)instance;
+        if (end_index == 0xffffffff)
+        {
+            end_index = value_string->length;
+        }
+
+        if (end_index > value_string->length || start_index > value_string->length)
+        {
+            ERR_Print(ERR_LEVEL_ERROR,
+                      "Line %d: string range out of index.",
+                      exp->instance->header.lineno);
+            success = false;
+            goto __EXIT;
+        }
+
+        unsigned int length = end_index - start_index;
+        if (length == 0)
+        {
+            returned_value = (struct S_Value*)S_CreateValueString(interpreter, "");
+        }
+        else if (length == value_string->length)
+        {
+            returned_value = (struct S_Value*)value_string;
+        }
+        else
+        {
+            char* s = (char*)malloc(length + 1);
+            memcpy(s, &value_string->string[start_index], length);
+            s[length] = 0;
+            returned_value = (struct S_Value*)S_CreateValueString(interpreter, s);
+            free(s);
+        }
+
+        success = true;
+    }
+    else if (instance->header.type == VALUE_TYPE_ARRAY)
+    {
+        struct S_Value_Array* value_array = (struct S_Value_Array*)instance;
+        if (end_index == 0xffffffff)
+        {
+            end_index = value_array->array_size;
+        }
+
+        if (end_index > value_array->array_size || start_index > value_array->array_size)
+        {
+            ERR_Print(ERR_LEVEL_ERROR,
+                      "Line %d: array range out of index.",
+                      exp->instance->header.lineno);
+            success = false;
+            goto __EXIT;
+        }
+
+        unsigned int length = end_index - start_index;
+        if (length == 0)
+        {
+            returned_value = (struct S_Value*)S_CreateValueArray(interpreter, 0, 0);
+        }
+        else
+        {
+            S_Value** a = (S_Value**)malloc(length * sizeof(S_Value*));
+            memcpy(a, &value_array->value_array[start_index], length * sizeof(S_Value*));
+            returned_value = (struct S_Value*)S_CreateValueArray(interpreter, a, length);
+            free(a);
+        }
+        success = true;
+    }
+    else
+    {
+        ERR_Print(ERR_LEVEL_ERROR,
+                  "Line %d: %s not support range subscription.",
+                  exp->instance->header.lineno,
+                  VALUE_NAME[instance->header.type]);
+        success = false;
+    }
+
+__EXIT:
+    while(S_GetRuntimeStackSize(interpreter) != start_stack_index)
+        S_PopRuntimeStackValue(interpreter);
+    if (success && returned_value != 0)
+        S_PushRuntimeStackValue(interpreter, returned_value);
+
+    return success;
+}
+
+bool S_Eval_Expression_Subscript_Expr(struct S_Interpreter* interpreter, struct S_Expression_Subscript* exp)
 {
     bool success = false;
     unsigned int start_stack_index = S_GetRuntimeStackSize(interpreter);
@@ -1220,6 +1392,18 @@ __EXIT:
     }
 
     return success;
+}
+
+bool S_Eval_Expression_Subscript(struct S_Interpreter* interpreter, struct S_Expression_Subscript* exp)
+{
+    if (exp->index->header.type == EXPRESSION_TYPE_RANGE)
+    {
+        return S_Eval_Expression_Subscript_Range(interpreter, exp);
+    }
+    else
+    {
+        return S_Eval_Expression_Subscript_Expr(interpreter, exp);
+    }
 }
 
 bool S_Eval_Expression_Char(struct S_Interpreter* interpreter, struct S_Expression_Char* exp)

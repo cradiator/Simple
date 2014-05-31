@@ -52,7 +52,7 @@
 %left  '*' '/'
 %right '^'
 
-%type<expression> expr cmp rel func_def assign add_sub mul_div factor func_call term postfix expr_or_empty
+%type<expression> expr cmp rel func_def assign add_sub mul_div factor func_call term postfix expr_or_empty range
 %type<statement> stat
 %type<statement_list> stat_list start
 %type<code_block> block
@@ -149,8 +149,15 @@ func_call : func_def '(' expr_list ')' {$$ = (struct S_Expression*)S_CreateExpre
 
 postfix : term {$$ = $1;}
         | postfix '[' expr ']' {$$ = (struct S_Expression*)S_CreateExpressionSubscript(interpreter, $1, $3);}
+        | postfix '[' range ']' {$$ = (struct S_Expression*)S_CreateExpressionSubscript(interpreter, $1, $3);}
         | postfix DOT SYMBOL {$$ = (struct S_Expression*)S_CreateExpressionDot(interpreter, $1, S_CreateExpressionSymbol(interpreter, $3));}
         ;
+
+range : ':' {$$ = (struct S_Expression*)S_CreateExpressionRange(interpreter, 0, 0);}
+      | expr ':' {$$ = (struct S_Expression*)S_CreateExpressionRange(interpreter, $1, 0);}
+      | ':' expr {$$ = (struct S_Expression*)S_CreateExpressionRange(interpreter, 0, $2);}
+      | expr ':' expr {$$ = (struct S_Expression*)S_CreateExpressionRange(interpreter, $1, $3);}
+      ;
 
 term : INTEGER {$$ = (struct S_Expression*)S_CreateExpressionInteger(interpreter, $1);}
      | DOUBLE  {$$ = (struct S_Expression*)S_CreateExpressionDouble(interpreter, $1);}

@@ -244,6 +244,23 @@ struct S_Expression_Dot* S_CreateExpressionDot(struct S_Interpreter* interpreter
     return e;
 }
 
+struct S_Expression_Range* S_CreateExpressionRange(struct S_Interpreter* interpreter,
+                                                   struct S_Expression* exp_start,
+                                                   struct S_Expression* exp_end)
+{
+    DCHECK(interpreter != 0);
+
+    struct S_Expression_Range *e =
+        (struct S_Expression_Range*)MM_AllocateStorage(interpreter->ParsingStorage,
+                                                       sizeof(struct S_Expression_Range));
+    DCHECK(e != 0);
+
+    InitializeExpressionHeader(interpreter, (struct S_Expression*)e, EXPRESSION_TYPE_RANGE);
+    e->exp_start = exp_start;
+    e->exp_end = exp_end;
+    return e;
+}
+
 //// End of Expression ////
 
 //// Expression List ////

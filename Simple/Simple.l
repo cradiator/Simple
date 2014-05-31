@@ -30,6 +30,7 @@
 <INITIAL>","  |
 <INITIAL>"^"  |
 <INITIAL>"["  |
+<INITIAL>":"  |
 <INITIAL>"]"  {yylloc = S_GetSrcLineNo(interpreter); return yytext[0];}
 
 <INITIAL>\.   {yylloc = S_GetSrcLineNo(interpreter); return DOT;}
